@@ -139,6 +139,8 @@ function saveBooking_(payload) {
   ];
 
   const bookingRowNumber = bookingSheet.getLastRow() + 1;
+  bookingSheet.getRange(bookingRowNumber, 5).setNumberFormat("@");
+  bookingSheet.getRange(bookingRowNumber, 7).setNumberFormat("@");
   bookingSheet.getRange(bookingRowNumber, 1, 1, bookingRow.length).setValues([bookingRow]);
   bookingSheet.getRange(bookingRowNumber, 2).setNumberFormat("yyyy/mm/dd hh:mm:ss");
   bookingSheet.getRange(bookingRowNumber, 10).setNumberFormat("yyyy/mm/dd");
