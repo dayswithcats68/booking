@@ -6,10 +6,10 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const LINE_CONFIG = Object.freeze({
-  channelAccessTokenProperty: "LINE_CHANNEL_ACCESS_TOKEN",
-  notificationToProperty: "LINE_NOTIFICATION_TO",
-  pushEndpoint: "https://api.line.me/v2/bot/message/push",
+const EMAIL_CONFIG = Object.freeze({
+  recipientsProperty: "BOOKING_NOTIFICATION_EMAILS",
+  senderName: "貓家日子預約系統",
+  spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${CONFIG.spreadsheetId}/edit`,
 });
 
 const ROOM_TYPES = Object.freeze({
@@ -19,16 +19,15 @@ const ROOM_TYPES = Object.freeze({
 
 const EXTRA_CAT_RATE = 200;
 const DAYCARE_RATE = 0.5;
-const ALLOWED_LINE_STATUSES = Object.freeze(["準備傳送", "已傳送", "傳送失敗"]);
+const ALLOWED_EMAIL_STATUSES = Object.freeze(["準備寄送", "已寄送", "寄送失敗"]);
 
 function doGet() {
   const properties = PropertiesService.getScriptProperties();
   return jsonResponse_({
     ok: true,
     service: "days-with-cats-booking",
-    lineNotificationConfigured: Boolean(
-      properties.getProperty(LINE_CONFIG.channelAccessTokenProperty) &&
-      properties.getProperty(LINE_CONFIG.notificationToProperty)
+    emailNotificationConfigured: Boolean(
+      properties.getProperty(EMAIL_CONFIG.recipientsProperty)
     ),
     timestamp: new Date().toISOString(),
   });
@@ -40,8 +39,8 @@ function doPost(event) {
   try {
     lock.waitLock(15000);
     const payload = parsePayload_(event);
-    const result = payload.action === "updateLineStatus"
-      ? updateLineStatus_(payload)
+    const result = payload.action === "updateEmailStatus"
+      ? updateEmailStatus_(payload)
       : saveBooking_(payload);
     return jsonResponse_({ ok: true, ...result });
   } catch (error) {
@@ -106,9 +105,9 @@ function saveBooking_(payload) {
   }
 
   const submittedAt = new Date();
-  const lineStatus = ALLOWED_LINE_STATUSES.includes(payload.lineStatus)
-    ? payload.lineStatus
-    : "準備傳送";
+  const emailStatus = ALLOWED_EMAIL_STATUSES.includes(payload.emailStatus)
+    ? payload.emailStatus
+    : "準備寄送";
   const additionalNotes = optionalText_(payload.additionalNotes, 300);
   const bookingRow = [
     safeText_(reservationId),
@@ -135,7 +134,7 @@ function saveBooking_(payload) {
     quote.total,
     quote.isLate ? "是" : "否",
     safeText_(additionalNotes),
-    lineStatus,
+    emailStatus,
     CONFIG.source,
   ];
 
@@ -170,56 +169,89 @@ function saveBooking_(payload) {
   catSheet.getRange(firstCatRow, 4, catRows.length, 2).setNumberFormat("yyyy/mm/dd");
   catSheet.getRange(firstCatRow, 1, catRows.length, catRows[0].length).setWrap(true);
 
-  const notificationStatus = sendLineNotificationSafely_(ownerName);
+  const notificationStatus = sendEmailNotificationSafely_({
+    reservationId,
+    ownerName,
+    ownerPhone,
+    quote,
+  });
   bookingSheet.getRange(bookingRowNumber, 25).setValue(notificationStatus);
 
   return { reservationId, duplicate: false, notificationStatus };
 }
 
-function sendLineNotificationSafely_(ownerName) {
+function sendEmailNotificationSafely_(booking) {
   try {
-    const properties = PropertiesService.getScriptProperties();
-    const channelAccessToken = String(
-      properties.getProperty(LINE_CONFIG.channelAccessTokenProperty) || ""
-    ).trim();
-    const notificationTo = String(
-      properties.getProperty(LINE_CONFIG.notificationToProperty) || ""
-    ).trim();
-
-    if (!channelAccessToken || !notificationTo) {
-      console.warn("LINE notification is not configured");
-      return "傳送失敗";
+    const recipients = getNotificationEmails_();
+    if (!recipients.length) {
+      console.warn("Email notification is not configured");
+      return "寄送失敗";
     }
 
-    const response = UrlFetchApp.fetch(LINE_CONFIG.pushEndpoint, {
-      method: "post",
-      contentType: "application/json",
-      headers: {
-        Authorization: `Bearer ${channelAccessToken}`,
-      },
-      payload: JSON.stringify({
-        to: notificationTo,
-        messages: [{ type: "text", text: `${ownerName}已預約` }],
-      }),
-      muteHttpExceptions: true,
+    const subject = [
+      `【新預約】${booking.ownerName}`,
+      `${booking.quote.checkIn}–${booking.quote.checkOut}`,
+      `${booking.quote.cats} 隻貓`,
+    ].join("｜");
+    const body = [
+      "貓家日子收到一筆新的住宿預約。",
+      "",
+      `預約編號：${booking.reservationId}`,
+      `飼主姓名：${booking.ownerName}`,
+      `聯絡電話：${booking.ownerPhone}`,
+      `住宿日期：${booking.quote.checkIn}–${booking.quote.checkOut}（${booking.quote.nights} 晚）`,
+      `房型：${booking.quote.room.name}`,
+      `貓咪數量：${booking.quote.cats} 隻`,
+      `預估金額：NT$${formatInteger_(booking.quote.total)}`,
+      "",
+      `查看完整預約資料：${EMAIL_CONFIG.spreadsheetUrl}`,
+    ].join("\n");
+
+    MailApp.sendEmail({
+      to: recipients.join(","),
+      subject,
+      body,
+      name: EMAIL_CONFIG.senderName,
     });
-
-    const statusCode = response.getResponseCode();
-    if (statusCode >= 200 && statusCode < 300) return "已傳送";
-
-    console.error(`LINE notification failed with status ${statusCode}`);
-    return "傳送失敗";
+    return "已寄送";
   } catch (error) {
     console.error(error);
-    return "傳送失敗";
+    return "寄送失敗";
   }
 }
 
-function updateLineStatus_(payload) {
+function getNotificationEmails_() {
+  const properties = PropertiesService.getScriptProperties();
+  const rawRecipients = String(
+    properties.getProperty(EMAIL_CONFIG.recipientsProperty) || ""
+  ).trim();
+  if (!rawRecipients) return [];
+
+  const recipients = [...new Set(
+    rawRecipients
+      .split(/[\s,;]+/)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+  )];
+  if (recipients.some((email) => !isValidEmail_(email))) {
+    throw new Error("Email 通知收件地址格式不正確");
+  }
+  return recipients;
+}
+
+function isValidEmail_(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function formatInteger_(value) {
+  return Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function updateEmailStatus_(payload) {
   const reservationId = requiredText_(payload.reservationId, "預約編號", 80);
-  const lineStatus = requiredText_(payload.lineStatus, "LINE 傳送狀態", 20);
-  if (!ALLOWED_LINE_STATUSES.includes(lineStatus)) {
-    throw new Error("LINE 傳送狀態不正確");
+  const emailStatus = requiredText_(payload.emailStatus, "Email 通知狀態", 20);
+  if (!ALLOWED_EMAIL_STATUSES.includes(emailStatus)) {
+    throw new Error("Email 通知狀態不正確");
   }
 
   const spreadsheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
@@ -228,8 +260,8 @@ function updateLineStatus_(payload) {
 
   const row = findReservationRow_(bookingSheet, reservationId);
   if (!row) throw new Error("找不到預約編號");
-  bookingSheet.getRange(row, 25).setValue(lineStatus);
-  return { reservationId, lineStatus };
+  bookingSheet.getRange(row, 25).setValue(emailStatus);
+  return { reservationId, emailStatus };
 }
 
 function findReservationRow_(sheet, reservationId) {
