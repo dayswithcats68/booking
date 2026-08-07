@@ -8,7 +8,7 @@
 2. 網頁即時計算原價、長住折扣、安親費、伙食費與預估總額。
 3. 填寫飼主、緊急聯絡人，以及每隻貓咪的飲食、健康與照護資料。
 4. 點選「送出預約資料」。
-5. 完整資料寫入 Google Sheets，頁面留在原處並顯示預約編號。
+5. 完整資料寫入 Google Sheets，頁面留在原處並顯示預約編號、訂金匯款說明、可複製的文字帳戶資料與住宿須知圖片。
 6. Apps Script 另外寄送一封新預約 Email 給指定的店家人員。
 
 Email 會直接包含完整預約明細，包括預約編號與時段、飼主與緊急聯絡資料、房型與伙食方案、完整費用明細、每隻貓咪的飲食／健康／照護資料、其他補充及預約表連結。
@@ -26,6 +26,8 @@ Email 會直接包含完整預約明細，包括預約編號與時段、飼主�
 - 貓家小貓房：每晚 NT$850，最多入住 4 隻貓
 - 探險家庭房：每晚 NT$1,300，最多入住 6 隻貓
 - 第 2 隻貓起：每隻每晚加收 NT$200
+- 最早入住時間：10:00
+- 最晚退宿時間：20:30
 - 入住 7–13 晚：住宿費享 95 折
 - 入住 14 晚以上：住宿費享 9 折
 - 超過 15:00 退宿：加收當次單晚房價的 50%
@@ -51,5 +53,6 @@ Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOT
 - `index.html`：試算、表單與 Google Sheets 提交流程
 - `config.js`：Apps Script Web App URL
 - `assets/days-with-cats-logo.png`：品牌 Logo
+- `assets/stay-guidelines.png`：預約送出後顯示的住宿須知
 - `google-apps-script/Code.gs`：Google Sheets 收件與 Email 店家通知後端
 - `google-apps-script/appsscript.json`：Apps Script 專案設定
