@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="貓家日子貓旅館住宿金額計算機：依房型、貓咪數量、住宿日期與退宿時間即時計算費用。"
+      content="貓家日子住宿費用試算：選擇房型、貓咪數量、住宿日期與退宿時間，快速估算住宿費用。"
     />
     <meta name="theme-color" content="#f7f1e7" />
-    <title>貓家日子｜住宿金額計算機</title>
+    <title>貓家日子｜貓咪住宿費用試算</title>
 
     <style>
       :root {
@@ -859,11 +859,11 @@
           <div class="brand-mark" aria-hidden="true">🐾</div>
           <div>
             <p class="eyebrow">貓家日子・CAT HOTEL</p>
-            <h1>住宿金額計算機</h1>
+            <h1>貓咪住宿費用試算</h1>
           </div>
         </div>
         <p class="masthead-note">
-          選擇房型、貓咪數量與住宿日期，系統會立即整理完整報價。
+          預計帶貓咪來住宿嗎？選擇房型、貓咪數量與日期，即可快速估算住宿費用。
         </p>
       </header>
 
@@ -872,7 +872,7 @@
           <section class="section" aria-labelledby="roomHeading">
             <h2 class="section-heading" id="roomHeading">
               <span class="step-number" aria-hidden="true">1</span>
-              選擇房型
+              選擇想入住的房型
             </h2>
 
             <fieldset>
@@ -910,12 +910,12 @@
           <section class="section" aria-labelledby="catsHeading">
             <h2 class="section-heading" id="catsHeading">
               <span class="step-number" aria-hidden="true">2</span>
-              填寫貓咪數量
+              入住的貓咪數量
             </h2>
 
             <div class="cat-row">
               <div class="cat-copy">
-                <strong>幾隻貓咪入住？</strong>
+                <strong>共有幾隻貓咪入住？</strong>
                 <span id="catLimitNote">第 2 隻起每隻每晚加收 NT$200・本房最多 4 貓</span>
               </div>
               <div class="stepper" role="group" aria-label="貓咪數量">
@@ -939,7 +939,7 @@
           <section class="section" aria-labelledby="datesHeading">
             <h2 class="section-heading" id="datesHeading">
               <span class="step-number" aria-hidden="true">3</span>
-              選擇住宿日期
+              選擇預計住宿日期
             </h2>
 
             <div class="date-grid">
@@ -959,7 +959,7 @@
           <section class="section" aria-labelledby="checkoutHeading">
             <h2 class="section-heading" id="checkoutHeading">
               <span class="step-number" aria-hidden="true">4</span>
-              選擇退宿時間
+              選擇預計退宿時間
             </h2>
 
             <fieldset>
@@ -994,12 +994,12 @@
         <aside class="panel summary-panel" aria-labelledby="summaryHeading">
           <div class="summary-top">
             <div class="summary-kicker">
-              <span id="summaryHeading">費用試算</span>
-              <span class="live-badge">即時更新</span>
+              <span id="summaryHeading">您的試算結果</span>
+              <span class="live-badge">自動計算</span>
             </div>
-            <p class="total-label">預估總金額</p>
+            <p class="total-label">預估住宿總額</p>
             <p class="total-amount" id="totalAmount" aria-live="polite">NT$0</p>
-            <p class="stay-summary" id="staySummary">請選擇住宿日期</p>
+            <p class="stay-summary" id="staySummary">請選擇預計住宿日期</p>
             <span class="discount-badge" id="discountBadge" hidden>長住優惠已套用</span>
           </div>
 
@@ -1035,15 +1035,15 @@
 
             <button class="copy-button" id="copyQuote" type="button">
               <span aria-hidden="true">▣</span>
-              <span id="copyButtonText">複製報價文字</span>
+              <span id="copyButtonText">複製試算結果</span>
             </button>
           </div>
         </aside>
       </div>
 
       <p class="footer-note">
-        此頁面僅供費用試算，實際入住安排以貓家日子確認結果為準。
-        <span class="version-tag" id="versionTag">計算機版本 2026.07-r4</span>
+        試算結果僅供參考，不代表預約成立；實際房況、入住安排與金額，以貓家日子回覆確認為準。
+        <span class="version-tag" id="versionTag">客用試算頁面</span>
       </p>
     </main>
 
@@ -1056,7 +1056,7 @@
           family: { name: "探險家庭房", baseRate: 1300, maxCats: 6 },
         });
 
-        const APP_VERSION = "2026.07-r4";
+        const APP_VERSION = "客用試算頁面";
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
         const LONG_STAY_TIERS = Object.freeze([
@@ -1212,7 +1212,7 @@
 
           currentQuote = null;
           output.totalAmount.textContent = "NT$0";
-          output.staySummary.textContent = "請確認住宿日期";
+          output.staySummary.textContent = "請確認預計住宿日期";
           output.discountBadge.hidden = true;
           output.nightlyRate.textContent = formatMoney(nightlyRate);
           output.nightlyFormula.textContent =
@@ -1324,7 +1324,7 @@
           }
 
           const lines = [
-            "貓家日子｜住宿費用試算",
+            "貓家日子｜住宿費用試算結果",
             "",
             `房型：${quote.room.name}`,
             `貓咪數量：${quote.cats} 隻`,
@@ -1337,7 +1337,7 @@
             `超時安親費：${formatMoney(quote.daycareFee)}`,
             `合計：${formatMoney(quote.total)}`,
             "",
-            "＊實際入住安排與金額以貓家日子確認結果為準。",
+            "＊此為試算結果，不代表預約成立；實際房況與金額以貓家日子回覆確認為準。",
           ];
 
           return lines.join("\n");
@@ -1366,7 +1366,7 @@
           copyButtonText.textContent = message;
           copyButton.classList.toggle("is-copied", successful);
           copyResetTimer = window.setTimeout(() => {
-            copyButtonText.textContent = "複製報價文字";
+            copyButtonText.textContent = "複製試算結果";
             copyButton.classList.remove("is-copied");
           }, 1800);
         }
@@ -1409,14 +1409,14 @@
           if (!currentQuote) return;
           try {
             await copyText(createQuoteText(currentQuote));
-            showCopyState("已複製，可以貼給客人了", true);
+            showCopyState("已複製，可貼給貓家日子詢問房況", true);
           } catch (error) {
             showCopyState("複製失敗，請再試一次", false);
           }
         });
 
         initializeDates();
-        output.versionTag.textContent = `計算機版本 ${APP_VERSION}`;
+        output.versionTag.textContent = APP_VERSION;
         updateCalculator();
 
         // 保留純計算函式，方便日後自動測試與調整房價。
