@@ -1493,8 +1493,8 @@
               <p class="reservation-eyebrow">STEP 2・RESERVATION</p>
               <h2 class="reservation-title" id="reservationHeading">填寫住宿預約資料</h2>
               <p class="reservation-intro">
-                試算內容已經自動帶入。填寫完成後可直接送出，不必從特定 LINE 對話開啟。
-                完整資料會登記至貓家日子的預約表，並另外通知店家。
+                試算內容已經自動帶入。填寫完成後可直接送出。
+                完整資料會登記至貓家日子的預約表，並以 Email 通知店家。
               </p>
             </div>
             <button class="secondary-button" id="backToEstimate" type="button">
@@ -1506,8 +1506,8 @@
             <div class="submission-info-banner" role="status">
               <p class="submission-info-title">可直接送出預約</p>
               <p class="submission-info-text">
-                無論從 LINE、Safari 或 Chrome 開啟皆可送出。完整資料只會登記於預約表，
-                店家 LINE 僅接收一則簡短通知。
+                使用常見瀏覽器開啟皆可送出。完整資料會登記於預約表，
+                並以 Email 通知店家。
               </p>
             </div>
 
@@ -2186,7 +2186,7 @@
             action: "createBooking",
             reservationId,
             website: getReservationValue(formData, "website", ""),
-            lineStatus: "準備傳送",
+            emailStatus: "準備寄送",
             owner: {
               name: getReservationValue(formData, "ownerName", ""),
               phone: getReservationValue(formData, "ownerPhone", ""),
