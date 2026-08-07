@@ -282,9 +282,10 @@
       .choice-card-body {
         display: flex;
         min-height: 112px;
+        overflow: hidden;
         flex-direction: column;
         justify-content: space-between;
-        padding: 18px;
+        padding: 0 18px 18px;
         border: 1px solid var(--line);
         border-radius: var(--radius-md);
         background: var(--paper);
@@ -293,6 +294,18 @@
           background-color 160ms ease,
           box-shadow 160ms ease,
           transform 160ms ease;
+      }
+
+      .room-photo {
+        display: block;
+        width: calc(100% + 36px);
+        max-width: none;
+        aspect-ratio: 1;
+        margin: 0 -18px 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--canvas-deep);
+        object-fit: cover;
+        object-position: center 50%;
       }
 
       .choice-card:hover .choice-card-body {
@@ -838,29 +851,6 @@
         padding: clamp(24px, 4vw, 38px);
       }
 
-      .submission-info-banner {
-        display: grid;
-        gap: 4px;
-        margin: 0 0 22px;
-        padding: 14px 16px;
-        border: 1px solid rgba(22, 140, 70, 0.24);
-        border-radius: 14px;
-        background: rgba(231, 238, 228, 0.9);
-        color: #315f3e;
-      }
-
-      .submission-info-title {
-        margin: 0;
-        font-size: 0.82rem;
-        font-weight: 900;
-      }
-
-      .submission-info-text {
-        margin: 0;
-        font-size: 0.74rem;
-        line-height: 1.65;
-      }
-
       .reservation-section + .reservation-section {
         padding-top: 30px;
         margin-top: 30px;
@@ -1320,6 +1310,14 @@
                 <label class="choice-card">
                   <input type="radio" name="room" value="small" checked />
                   <span class="choice-card-body">
+                    <img
+                      class="room-photo"
+                      src="assets/small-cat-room.jpg"
+                      alt="貓家小貓房實景"
+                      width="1365"
+                      height="2047"
+                      decoding="async"
+                    />
                     <span class="choice-card-top">
                       <span class="choice-card-title">貓家小貓房<small>最多入住 4 貓</small></span>
                       <span class="choice-check" aria-hidden="true">✓</span>
@@ -1333,6 +1331,14 @@
                 <label class="choice-card">
                   <input type="radio" name="room" value="family" />
                   <span class="choice-card-body">
+                    <img
+                      class="room-photo"
+                      src="assets/adventure-family-room.jpg"
+                      alt="探險家庭房實景"
+                      width="1365"
+                      height="2047"
+                      decoding="async"
+                    />
                     <span class="choice-card-top">
                       <span class="choice-card-title">探險家庭房<small>最多入住 6 貓</small></span>
                       <span class="choice-check" aria-hidden="true">✓</span>
@@ -1503,14 +1509,6 @@
           </div>
 
           <form class="reservation-form" id="reservationForm" novalidate>
-            <div class="submission-info-banner" role="status">
-              <p class="submission-info-title">可直接送出預約</p>
-              <p class="submission-info-text">
-                使用常見瀏覽器開啟皆可送出。完整資料會登記於預約表，
-                並以 Email 通知店家。
-              </p>
-            </div>
-
             <label class="honeypot-field" aria-hidden="true">
               公司網站
               <input name="website" type="text" tabindex="-1" autocomplete="off" />
