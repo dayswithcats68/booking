@@ -32,6 +32,9 @@ const MEAL_PLANS = Object.freeze({
 const EXTRA_CAT_RATE = 200;
 const DAYCARE_RATE = 0.5;
 const MAX_CANS_PER_CAT_PER_DAY = 20;
+const EARLIEST_ARRIVAL_TIME = "10:00";
+const STANDARD_CHECKOUT_TIME = "15:00";
+const LATEST_DEPARTURE_TIME = "20:30";
 const ALLOWED_EMAIL_STATUSES = Object.freeze(["準備寄送", "已寄送", "寄送失敗"]);
 const MEAL_HEADERS = Object.freeze([
   "伙食方案",
@@ -111,6 +114,7 @@ function saveBooking_(payload) {
   const arrivalTime = requiredTime_(booking.arrivalTime, "入住時間");
   const departureTime = requiredTime_(booking.departureTime, "退宿時間");
   const quote = calculateQuote_(booking);
+  validateBookingTimes_(arrivalTime, departureTime, quote.isLate);
 
   if (cats.length !== quote.cats) {
     throw new Error("貓咪資料數量與預約數量不一致");
@@ -528,6 +532,21 @@ function requiredTime_(value, label) {
   const text = requiredText_(value, label, 5);
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(text)) throw new Error(`${label}格式不正確`);
   return text;
+}
+
+function validateBookingTimes_(arrivalTime, departureTime, isLate) {
+  if (arrivalTime < EARLIEST_ARRIVAL_TIME) {
+    throw new Error(`入住時間不可早於 ${EARLIEST_ARRIVAL_TIME}`);
+  }
+  if (departureTime > LATEST_DEPARTURE_TIME) {
+    throw new Error(`退宿時間不可晚於 ${LATEST_DEPARTURE_TIME}`);
+  }
+  if (isLate && departureTime <= STANDARD_CHECKOUT_TIME) {
+    throw new Error("退宿時間與所選退宿區間不一致");
+  }
+  if (!isLate && departureTime > STANDARD_CHECKOUT_TIME) {
+    throw new Error("退宿時間與所選退宿區間不一致");
+  }
 }
 
 function requiredText_(value, label, maxLength) {

@@ -40,6 +40,8 @@
         --radius-lg: 28px;
         --radius-md: 18px;
         --radius-sm: 12px;
+        --font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui,
+          -apple-system, BlinkMacSystemFont, sans-serif;
       }
 
       * {
@@ -60,9 +62,7 @@
           radial-gradient(circle at 9% 8%, rgba(255, 255, 255, 0.85) 0 7%, transparent 21%),
           radial-gradient(circle at 94% 86%, rgba(220, 203, 181, 0.72) 0 6%, transparent 25%),
           var(--canvas);
-        font-family:
-          "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system,
-          BlinkMacSystemFont, sans-serif;
+        font-family: var(--font-family);
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
       }
@@ -396,7 +396,7 @@
       }
 
       .choice-card-price strong {
-        font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+        font-family: inherit;
         font-size: 1.55rem;
         letter-spacing: -0.04em;
       }
@@ -681,7 +681,7 @@
 
       .total-amount {
         margin: 0;
-        font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+        font-family: inherit;
         font-size: clamp(2.6rem, 6vw, 4rem);
         font-weight: 800;
         letter-spacing: -0.055em;
@@ -854,7 +854,7 @@
 
       .reservation-title {
         margin: 0;
-        font-family: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+        font-family: inherit;
         font-size: clamp(1.55rem, 3vw, 2.2rem);
         line-height: 1.2;
       }
@@ -1122,6 +1122,152 @@
         color: var(--ink);
       }
 
+      .reservation-success-header {
+        display: grid;
+        gap: 6px;
+      }
+
+      .reservation-success-message {
+        padding: 15px 16px;
+        border: 1px solid rgba(114, 72, 51, 0.16);
+        border-radius: 14px;
+        background: rgba(255, 253, 249, 0.88);
+        color: var(--ink) !important;
+        font-size: 0.82rem !important;
+        text-align: left;
+      }
+
+      .payment-details {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(114, 72, 51, 0.18);
+        border-radius: 14px;
+        background: rgba(255, 253, 249, 0.96);
+        text-align: left;
+      }
+
+      .payment-details-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .payment-details-title {
+        margin: 0;
+        color: var(--ink);
+        font-size: 0.9rem;
+      }
+
+      .copy-account-button {
+        min-height: 38px;
+        flex: 0 0 auto;
+        padding: 7px 12px;
+        border: 1px solid rgba(114, 72, 51, 0.28);
+        border-radius: 10px;
+        background: var(--brand-soft);
+        color: var(--brand-dark);
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .copy-account-button:hover {
+        background: #eadccf;
+      }
+
+      .copy-account-button:focus-visible {
+        outline: 3px solid rgba(128, 146, 124, 0.45);
+        outline-offset: 2px;
+      }
+
+      .payment-details-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+      }
+
+      .payment-details-row {
+        display: grid;
+        grid-template-columns: 5.2em minmax(0, 1fr);
+        gap: 10px;
+        margin: 0;
+      }
+
+      .payment-details-row dt,
+      .payment-details-row dd {
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.55;
+      }
+
+      .payment-details-row dt {
+        color: var(--muted);
+      }
+
+      .payment-details-row dd {
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .payment-account-number {
+        overflow-wrap: anywhere;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.035em;
+        user-select: all;
+      }
+
+      .copy-payment-feedback {
+        min-height: 1.35em;
+        margin: 0;
+        color: #315f3e !important;
+        font-size: 0.72rem !important;
+        font-weight: 800;
+      }
+
+      .reservation-success-gallery {
+        display: grid;
+        grid-template-columns: minmax(0, 620px);
+        align-items: start;
+        justify-content: center;
+        gap: 14px;
+      }
+
+      .reservation-success-card {
+        display: grid;
+        gap: 7px;
+        margin: 0;
+      }
+
+      .reservation-success-card a {
+        display: block;
+        overflow: hidden;
+        border: 1px solid rgba(114, 72, 51, 0.18);
+        border-radius: 14px;
+        background: var(--paper);
+        box-shadow: 0 8px 22px rgba(87, 64, 48, 0.08);
+      }
+
+      .reservation-success-card a:focus-visible {
+        outline: 3px solid rgba(128, 146, 124, 0.45);
+        outline-offset: 3px;
+      }
+
+      .reservation-success-card img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .reservation-success-card figcaption {
+        color: var(--muted);
+        font-size: 0.7rem;
+        text-align: center;
+      }
+
       .honeypot-field {
         position: absolute !important;
         width: 1px !important;
@@ -1290,7 +1436,8 @@
         .time-options,
         .meal-options,
         .form-grid,
-        .booking-summary {
+        .booking-summary,
+        .reservation-success-gallery {
           grid-template-columns: 1fr;
         }
 
@@ -1506,7 +1653,7 @@
                     <span class="radio-dot" aria-hidden="true"></span>
                     <span class="time-choice-copy">
                       <strong>超過 15:00</strong>
-                      <span>加收單晚房價 50%</span>
+                      <span>加收單晚房價 50%・最晚 20:30</span>
                     </span>
                   </span>
                 </label>
@@ -1703,8 +1850,10 @@
             </section>
 
             <section class="reservation-section" aria-labelledby="scheduleHeading">
-              <h3 class="reservation-section-title" id="scheduleHeading">預計抵達時間</h3>
-              <p class="reservation-section-note">方便安排接待；實際時段仍以貓家日子回覆為準。</p>
+              <h3 class="reservation-section-title" id="scheduleHeading">預計入住與退宿時間</h3>
+              <p class="reservation-section-note">
+                入住最早 10:00、退宿最晚 20:30；實際時段仍以貓家日子回覆為準。
+              </p>
               <div class="form-grid">
                 <label class="field-group">
                   <span class="input-label">預計入住時間<span class="required-mark">＊</span></span>
@@ -1714,8 +1863,10 @@
                     name="arrivalTime"
                     type="time"
                     value="15:00"
+                    min="10:00"
                     required
                   />
+                  <span class="field-help">最早可填 10:00。</span>
                 </label>
                 <label class="field-group">
                   <span class="input-label">預計退宿時間<span class="required-mark">＊</span></span>
@@ -1725,6 +1876,8 @@
                     name="departureTime"
                     type="time"
                     value="15:00"
+                    min="00:00"
+                    max="15:00"
                     required
                   />
                   <span class="field-help" id="departureTimeHelp">
@@ -1843,11 +1996,61 @@
                 <p class="reservation-status" id="reservationStatus" role="alert" aria-live="polite"></p>
 
                 <div class="reservation-success" id="reservationSuccess" hidden>
-                  <h4>預約資料已送出</h4>
-                  <p>
-                    預約編號：<strong id="successReservationId">—</strong><br />
-                    這是預約需求，不代表房況已確認；請等待貓家日子回覆。
+                  <div class="reservation-success-header">
+                    <h4>預約資料已送出</h4>
+                    <p>預約編號：<strong id="successReservationId">—</strong></p>
+                  </div>
+                  <p class="reservation-success-message">
+                    敬請於預約七日內匯款訂金500元至以下帳戶，並截圖或私訊您的帳號末五碼傳至貓家日子 Line
+                    官方帳號（@days.cat），我們收到款項即正式為您的寶貝保留房間。<br /><br />
+                    感謝您的預約，期待為您的寶貝服務！
                   </p>
+                  <section class="payment-details" aria-labelledby="paymentDetailsHeading">
+                    <div class="payment-details-header">
+                      <h5 class="payment-details-title" id="paymentDetailsHeading">匯款帳戶</h5>
+                      <button class="copy-account-button" id="copyPaymentAccount" type="button">
+                        複製帳號
+                      </button>
+                    </div>
+                    <dl class="payment-details-list">
+                      <div class="payment-details-row">
+                        <dt>銀行</dt>
+                        <dd>元大銀行（北三重分行）</dd>
+                      </div>
+                      <div class="payment-details-row">
+                        <dt>銀行代碼</dt>
+                        <dd>806</dd>
+                      </div>
+                      <div class="payment-details-row">
+                        <dt>帳號</dt>
+                        <dd>
+                          <span class="payment-account-number" id="paymentAccountNumber">21072000223851</span>
+                        </dd>
+                      </div>
+                      <div class="payment-details-row">
+                        <dt>戶名</dt>
+                        <dd>貓家日子股份有限公司</dd>
+                      </div>
+                    </dl>
+                    <p class="copy-payment-feedback" id="copyPaymentFeedback" role="status" aria-live="polite"></p>
+                  </section>
+                  <div class="reservation-success-gallery" aria-label="住宿須知">
+                    <figure class="reservation-success-card">
+                      <a
+                        href="assets/stay-guidelines.png"
+                        target="_blank"
+                        rel="noopener"
+                        aria-label="開啟完整住宿須知圖片"
+                      >
+                        <img
+                          src="assets/stay-guidelines.png"
+                          alt="貓家日子住宿須知"
+                          loading="lazy"
+                        />
+                      </a>
+                      <figcaption>住宿須知・點圖可放大</figcaption>
+                    </figure>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1899,6 +2102,8 @@
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
         const MAX_CANS_PER_CAT_PER_DAY = 20;
+        const STANDARD_CHECKOUT_TIME = "15:00";
+        const LATEST_DEPARTURE_TIME = "20:30";
         const LONG_STAY_TIERS = Object.freeze([
           { minimumNights: 14, multiplier: 0.9, name: "9 折", description: "14 晚以上・9 折" },
           { minimumNights: 7, multiplier: 0.95, name: "95 折", description: "7–13 晚・95 折" },
@@ -1935,6 +2140,9 @@
         const submitButtonLabel = document.getElementById("submitButtonLabel");
         const reservationSuccess = document.getElementById("reservationSuccess");
         const successReservationId = document.getElementById("successReservationId");
+        const copyPaymentAccountButton = document.getElementById("copyPaymentAccount");
+        const paymentAccountNumber = document.getElementById("paymentAccountNumber");
+        const copyPaymentFeedback = document.getElementById("copyPaymentFeedback");
 
         const output = {
           totalAmount: document.getElementById("totalAmount"),
@@ -2317,17 +2525,24 @@
 
           if (quote.isLate) {
             departureTimeInput.min = "15:01";
-            departureTimeInput.max = "23:59";
-            departureTimeHelp.textContent = "上一步選擇超過 15:00，請填寫 15:01 之後的時間。";
-            if (!departureTimeInput.value || departureTimeInput.value <= "15:00") {
+            departureTimeInput.max = LATEST_DEPARTURE_TIME;
+            departureTimeHelp.textContent = "請填寫 15:01–20:30；最晚退宿時間為 20:30。";
+            if (
+              !departureTimeInput.value ||
+              departureTimeInput.value <= STANDARD_CHECKOUT_TIME ||
+              departureTimeInput.value > LATEST_DEPARTURE_TIME
+            ) {
               departureTimeInput.value = "16:00";
             }
           } else {
             departureTimeInput.min = "00:00";
-            departureTimeInput.max = "15:00";
+            departureTimeInput.max = STANDARD_CHECKOUT_TIME;
             departureTimeHelp.textContent = "上一步選擇 15:00（含）以前，最晚可填 15:00。";
-            if (!departureTimeInput.value || departureTimeInput.value > "15:00") {
-              departureTimeInput.value = "15:00";
+            if (
+              !departureTimeInput.value ||
+              departureTimeInput.value > STANDARD_CHECKOUT_TIME
+            ) {
+              departureTimeInput.value = STANDARD_CHECKOUT_TIME;
             }
           }
         }
@@ -2535,6 +2750,35 @@
           }
         }
 
+        async function copyPaymentAccountNumber() {
+          const accountNumber = paymentAccountNumber.textContent.replace(/\D/g, "");
+
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(accountNumber);
+            } else {
+              const copyField = document.createElement("textarea");
+              copyField.value = accountNumber;
+              copyField.setAttribute("readonly", "");
+              copyField.style.position = "fixed";
+              copyField.style.opacity = "0";
+              document.body.appendChild(copyField);
+              copyField.select();
+              const copied = document.execCommand?.("copy");
+              copyField.remove();
+              if (!copied) throw new Error("copy unavailable");
+            }
+
+            copyPaymentAccountButton.textContent = "已複製";
+            copyPaymentFeedback.textContent = "帳號已複製，可直接貼到銀行 App。";
+            window.setTimeout(() => {
+              copyPaymentAccountButton.textContent = "複製帳號";
+            }, 2000);
+          } catch (error) {
+            copyPaymentFeedback.textContent = `無法自動複製，請長按帳號 ${accountNumber} 複製。`;
+          }
+        }
+
         function initializeDates() {
           const today = new Date();
           const checkIn = toLocalISO(today);
@@ -2601,6 +2845,7 @@
 
         startReservationButton.addEventListener("click", showReservationStep);
         backToEstimateButton.addEventListener("click", showEstimateStep);
+        copyPaymentAccountButton.addEventListener("click", copyPaymentAccountNumber);
 
         reservationForm.addEventListener("submit", async (event) => {
           event.preventDefault();
