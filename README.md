@@ -1,25 +1,25 @@
 # 貓家日子客用住宿試算與預約
 
-這是一個部署於 GitHub Pages 的貓咪住宿試算與 LINE LIFF 預約頁。客人從貓家日子 LINE 官方帳號的一對一對話開啟後，可以完成試算、填寫資料、同步登記至 Google Sheets，並以自己的 LINE 身分將完整內容直接傳入目前的官方帳號對話。
+這是一個部署於 GitHub Pages 的貓咪住宿試算與預約頁。客人可以從 LINE、Safari、Chrome 或其他瀏覽器開啟，完成試算與資料填寫後直接送出，不需要進入指定的 LINE 對話。
 
 ## 客人使用流程
 
-1. 從貓家日子 LINE 官方帳號的 LIFF 預約入口開啟網頁。
-2. 選擇房型、貓咪數量、住宿日期與退宿時間。
-3. 網頁即時計算原價、長住折扣、安親費與預估總額。
-4. 填寫飼主、緊急聯絡人，以及每隻貓咪的飲食、健康與照護資料。
-5. 點選「送出預約資料」。
-6. 系統將資料寫入 Google Sheets，再用 `liff.sendMessages()` 傳到目前的 LINE 對話。
+1. 選擇房型、貓咪數量、住宿日期與退宿時間。
+2. 網頁即時計算原價、長住折扣、安親費與預估總額。
+3. 填寫飼主、緊急聯絡人，以及每隻貓咪的飲食、健康與照護資料。
+4. 點選「送出預約資料」。
+5. 完整資料寫入 Google Sheets，頁面留在原處並顯示預約編號。
+6. Apps Script 另外透過 LINE Messaging API，向指定的店家人員或通知群組推播一則「飼主姓名已預約」。
 
-為避免把個人資料傳入群組或其他聊天室，送出功能只會在 LINE 的一對一 LIFF 對話環境中啟用。直接從一般瀏覽器開啟時仍可試算，但無法送出預約。
+LINE 通知不包含電話、貓咪資料或其他個人資訊；完整內容只保留在預約表。
 
 ## 資料結構
 
 指定的 Google Spreadsheet ID：`1EM9yFt-zHo84abbOVvr10vb2GNm5XR1X2xBLMejlMoE`
 
-- `住宿預約`：一筆預約一列，包含飼主、日期、房型、金額、狀態與 LINE 傳送狀態。
+- `住宿預約`：一筆預約一列，包含飼主、日期、房型、金額、狀態與 LINE 通知狀態。
 - `貓咪資料`：每隻貓一列，以預約編號連回住宿預約。
-- `google-apps-script/Code.gs`：接收預約、驗證與重新計算價格、去除重複預約並寫入兩張工作表。
+- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表並發送簡短 LINE 通知。
 
 ## 已包含的計價規則
 
@@ -31,23 +31,22 @@
 - 超過 15:00 退宿：加收當次單晚房價的 50%
 - 長住折扣套用於住宿費；超時安親費不參與折扣
 
-## 啟用正式送出
+## 正式設定
 
-完整的一次性設定請見 [`SETUP.md`](SETUP.md)。完成後，將 Apps Script Web App `/exec` 網址及 LIFF ID 填入 `config.js`：
+完整步驟請見 [`SETUP.md`](SETUP.md)。網站只需要在 `config.js` 設定 Apps Script Web App `/exec` 網址：
 
 ```js
 window.CAT_STAY_CONFIG = Object.freeze({
-  liffId: "1234567890-AbcdEfgh",
   bookingEndpoint: "https://script.google.com/macros/s/DEPLOYMENT_ID/exec",
 });
 ```
 
-LIFF Rich Menu 或官方帳號內的預約按鈕，必須連到 `https://liff.line.me/{LIFF_ID}`，不能直接連 GitHub Pages 網址。
+LINE Channel Access Token 與通知對象 ID 必須存放在 Apps Script 的「指令碼屬性」，不可寫入 GitHub 或前端程式。
 
 ## 檔案
 
-- `index.html`：試算、表單、Google Sheets 提交與 LIFF 傳送流程
-- `config.js`：LIFF ID 與 Apps Script Web App URL
+- `index.html`：試算、表單與 Google Sheets 提交流程
+- `config.js`：Apps Script Web App URL
 - `assets/days-with-cats-logo.png`：品牌 Logo
-- `google-apps-script/Code.gs`：Google Apps Script 後端
+- `google-apps-script/Code.gs`：Google Sheets 收件與 LINE 店家通知後端
 - `google-apps-script/appsscript.json`：Apps Script 專案設定

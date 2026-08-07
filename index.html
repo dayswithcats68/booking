@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="貓家日子住宿試算與預約：選擇房型、貓咪數量與日期，從 LINE 官方帳號開啟後即可填寫並送出預約資料。"
+      content="貓家日子住宿試算與預約：選擇房型、貓咪數量與日期，填寫資料後即可直接送出預約需求。"
     />
     <meta name="theme-color" content="#f7f1e7" />
     <meta property="og:title" content="貓家日子｜貓咪住宿試算與預約" />
     <meta
       property="og:description"
-      content="快速試算貓咪住宿費用，從 LINE 內填寫資料、登記預約並直接傳送至貓家日子官方帳號。"
+      content="快速試算貓咪住宿費用，填寫照護資料並直接送出預約需求。"
     />
     <meta
       property="og:image"
@@ -766,15 +766,15 @@
         transform: none;
       }
 
-      .line-button {
+      .submit-button {
         background: #168c46;
       }
 
-      .line-button:hover {
+      .submit-button:hover {
         background: #10763a;
       }
 
-      .line-button[aria-busy="true"] {
+      .submit-button[aria-busy="true"] {
         background: #64806e;
         cursor: wait;
       }
@@ -838,41 +838,27 @@
         padding: clamp(24px, 4vw, 38px);
       }
 
-      .line-context-banner {
+      .submission-info-banner {
         display: grid;
         gap: 4px;
         margin: 0 0 22px;
         padding: 14px 16px;
-        border: 1px solid rgba(160, 68, 56, 0.26);
+        border: 1px solid rgba(22, 140, 70, 0.24);
         border-radius: 14px;
-        background: rgba(255, 244, 237, 0.82);
-        color: var(--danger);
-      }
-
-      .line-context-banner.is-ready {
-        border-color: rgba(22, 140, 70, 0.24);
         background: rgba(231, 238, 228, 0.9);
         color: #315f3e;
       }
 
-      .line-context-title {
+      .submission-info-title {
         margin: 0;
         font-size: 0.82rem;
         font-weight: 900;
       }
 
-      .line-context-text {
+      .submission-info-text {
         margin: 0;
         font-size: 0.74rem;
         line-height: 1.65;
-      }
-
-      .line-entry-link {
-        width: fit-content;
-        margin-top: 5px;
-        color: inherit;
-        font-size: 0.75rem;
-        font-weight: 900;
       }
 
       .reservation-section + .reservation-section {
@@ -1058,18 +1044,12 @@
         margin-top: 18px;
       }
 
-      .privacy-note,
-      .line-fallback {
+      .privacy-note {
         margin: 0;
         color: var(--muted);
         font-size: 0.72rem;
         line-height: 1.65;
         text-align: center;
-      }
-
-      .line-fallback a {
-        color: var(--brand-dark);
-        font-weight: 800;
       }
 
       .reservation-status {
@@ -1312,7 +1292,7 @@
           </div>
         </div>
         <p class="masthead-note">
-          從 LINE 官方帳號開啟，完成試算與必要資料後即可直接送出預約需求。
+          完成費用試算與必要資料後，即可直接送出預約需求。
         </p>
       </header>
 
@@ -1513,8 +1493,8 @@
               <p class="reservation-eyebrow">STEP 2・RESERVATION</p>
               <h2 class="reservation-title" id="reservationHeading">填寫住宿預約資料</h2>
               <p class="reservation-intro">
-                試算內容已經自動帶入。請從貓家日子 LINE 官方帳號的預約入口開啟本頁；
-                送出後會登記資料，並以你的 LINE 將完整內容直接傳到目前的官方帳號對話。
+                試算內容已經自動帶入。填寫完成後可直接送出，不必從特定 LINE 對話開啟。
+                完整資料會登記至貓家日子的預約表，並另外通知店家。
               </p>
             </div>
             <button class="secondary-button" id="backToEstimate" type="button">
@@ -1523,14 +1503,12 @@
           </div>
 
           <form class="reservation-form" id="reservationForm" novalidate>
-            <div class="line-context-banner" id="lineContextBanner" role="status" aria-live="polite">
-              <p class="line-context-title" id="lineContextTitle">正在確認 LINE 連線</p>
-              <p class="line-context-text" id="lineContextText">
-                請稍候，系統正在確認這個預約頁是否從 LINE 官方帳號內開啟。
+            <div class="submission-info-banner" role="status">
+              <p class="submission-info-title">可直接送出預約</p>
+              <p class="submission-info-text">
+                無論從 LINE、Safari 或 Chrome 開啟皆可送出。完整資料只會登記於預約表，
+                店家 LINE 僅接收一則簡短通知。
               </p>
-              <a class="line-entry-link" id="lineEntryLink" href="#" hidden>
-                使用 LINE 開啟預約頁 →
-              </a>
             </div>
 
             <label class="honeypot-field" aria-hidden="true">
@@ -1691,16 +1669,12 @@
               </label>
 
               <div class="reservation-actions">
-                <button class="primary-button line-button" id="openLine" type="submit">
+                <button class="primary-button submit-button" id="submitReservation" type="submit">
                   <span id="submitButtonLabel">送出預約資料</span>
                   <span class="button-arrow" aria-hidden="true">→</span>
                 </button>
                 <p class="privacy-note">
-                  送出後，資料會登記至貓家日子的預約表，並以你的 LINE 傳送至官方帳號；
-                  這個網頁本身不會保存你的資料。
-                </p>
-                <p class="line-fallback">
-                  若不是從 LINE 內開啟，請先回到貓家日子官方帳號，從對話內的預約入口重新進入。
+                  送出後，完整資料會登記至貓家日子的預約表；這個網頁本身不會保存你的資料。
                 </p>
                 <p class="reservation-status" id="reservationStatus" role="alert" aria-live="polite"></p>
 
@@ -1710,9 +1684,6 @@
                     預約編號：<strong id="successReservationId">—</strong><br />
                     這是預約需求，不代表房況已確認；請等待貓家日子回覆。
                   </p>
-                  <button class="secondary-button" id="returnToLine" type="button">
-                    返回 LINE 對話
-                  </button>
                 </div>
               </div>
             </section>
@@ -1726,7 +1697,6 @@
       </p>
     </main>
 
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="config.js"></script>
     <script>
       (() => {
@@ -1737,11 +1707,9 @@
           family: { name: "探險家庭房", baseRate: 1300, maxCats: 6 },
         });
 
-        const APP_VERSION = "LINE 預約與雲端登記頁面";
+        const APP_VERSION = "線上預約與雲端登記頁面";
         const APP_CONFIG = window.CAT_STAY_CONFIG || {};
-        const LIFF_ID = String(APP_CONFIG.liffId || "").trim();
         const BOOKING_ENDPOINT = String(APP_CONFIG.bookingEndpoint || "").trim();
-        const LIFF_URL = LIFF_ID ? `https://liff.line.me/${encodeURIComponent(LIFF_ID)}` : "";
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
         const LONG_STAY_TIERS = Object.freeze([
@@ -1769,15 +1737,10 @@
         const departureTimeInput = document.getElementById("departureTime");
         const departureTimeHelp = document.getElementById("departureTimeHelp");
         const reservationStatus = document.getElementById("reservationStatus");
-        const submitButton = document.getElementById("openLine");
+        const submitButton = document.getElementById("submitReservation");
         const submitButtonLabel = document.getElementById("submitButtonLabel");
-        const lineContextBanner = document.getElementById("lineContextBanner");
-        const lineContextTitle = document.getElementById("lineContextTitle");
-        const lineContextText = document.getElementById("lineContextText");
-        const lineEntryLink = document.getElementById("lineEntryLink");
         const reservationSuccess = document.getElementById("reservationSuccess");
         const successReservationId = document.getElementById("successReservationId");
-        const returnToLineButton = document.getElementById("returnToLine");
 
         const output = {
           totalAmount: document.getElementById("totalAmount"),
@@ -1804,12 +1767,6 @@
         let currentQuote = null;
         let renderedCatCount = 0;
         let pendingSubmission = null;
-        let liffState = {
-          initialized: false,
-          inClient: false,
-          contextType: "external",
-          error: "",
-        };
 
         function toLocalISO(date) {
           const year = date.getFullYear();
@@ -1871,85 +1828,6 @@
           }
           const suffix = randomValues[0].toString(36).toUpperCase().padStart(4, "0");
           return `DWC-${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}-${suffix}`;
-        }
-
-        function canSendViaLine() {
-          return (
-            liffState.initialized &&
-            liffState.inClient &&
-            liffState.contextType === "utou" &&
-            typeof window.liff?.sendMessages === "function"
-          );
-        }
-
-        function renderLineContext() {
-          const isReady = canSendViaLine();
-          lineContextBanner.classList.toggle("is-ready", isReady);
-          lineEntryLink.hidden = !LIFF_URL || isReady;
-          if (LIFF_URL) lineEntryLink.href = LIFF_URL;
-
-          if (isReady) {
-            lineContextTitle.textContent = "已連接 LINE 對話";
-            lineContextText.textContent =
-              "送出後會先登記預約資料，再以你的 LINE 將完整內容傳到目前的官方帳號對話。";
-            return;
-          }
-
-          if (!LIFF_ID || !BOOKING_ENDPOINT) {
-            lineContextTitle.textContent = "預約系統尚未完成設定";
-            lineContextText.textContent = "請稍後再試，或先透過貓家日子 LINE 官方帳號聯絡我們。";
-            return;
-          }
-
-          if (liffState.error) {
-            lineContextTitle.textContent = "目前無法連接 LINE";
-            lineContextText.textContent =
-              "請回到貓家日子官方帳號，從一對一對話內的預約入口重新開啟。";
-            return;
-          }
-
-          if (liffState.inClient && liffState.contextType !== "utou") {
-            lineContextTitle.textContent = "請從官方帳號的一對一對話開啟";
-            lineContextText.textContent =
-              "為避免把個人資料傳到群組或其他聊天室，本頁只接受從貓家日子官方帳號的一對一對話送出。";
-            return;
-          }
-
-          lineContextTitle.textContent = "請使用 LINE 開啟預約頁";
-          lineContextText.textContent =
-            "目前是外部瀏覽器，無法直接傳送 LINE 訊息。請從貓家日子官方帳號的預約入口重新開啟。";
-        }
-
-        async function initializeLiff() {
-          if (!LIFF_ID || !BOOKING_ENDPOINT || !window.liff) {
-            liffState = {
-              initialized: false,
-              inClient: false,
-              contextType: "external",
-              error: "missing-config",
-            };
-            renderLineContext();
-            return;
-          }
-
-          try {
-            await window.liff.init({ liffId: LIFF_ID });
-            const context = window.liff.getContext?.();
-            liffState = {
-              initialized: true,
-              inClient: window.liff.isInClient(),
-              contextType: context?.type || "external",
-              error: "",
-            };
-          } catch (error) {
-            liffState = {
-              initialized: false,
-              inClient: false,
-              contextType: "external",
-              error: error?.message || "liff-init-failed",
-            };
-          }
-          renderLineContext();
         }
 
         function setSubmitting(isSubmitting, label = "送出預約資料") {
@@ -2288,102 +2166,6 @@
           return value || fallback;
         }
 
-        function createReservationText(quote, reservationId) {
-          const formData = new FormData(reservationForm);
-          const priceLines = [
-            `單晚房價：${formatMoney(quote.nightlyRate)}`,
-            `住宿原價：${formatMoney(quote.staySubtotal)}`,
-          ];
-
-          if (quote.discountAmount) {
-            priceLines.push(
-              `長住優惠（${quote.discountName}）：−${formatMoney(quote.discountAmount)}`,
-              `折扣後住宿費：${formatMoney(quote.discountedStaySubtotal)}`,
-            );
-          }
-
-          const lines = [
-            "貓家日子｜住宿預約資料",
-            `預約編號：${reservationId}`,
-            "",
-            "【住宿試算】",
-            `房型：${quote.room.name}`,
-            `貓咪數量：${quote.cats} 隻`,
-            `住宿日期：${formatDateForQuote(quote.checkIn)}–${formatDateForQuote(
-              quote.checkOut,
-            )}（共 ${quote.nights} 晚）`,
-            `預計入住時間：${getReservationValue(formData, "arrivalTime")}`,
-            `預計退宿時間：${getReservationValue(formData, "departureTime")}（${
-              quote.isLate ? "超過 15:00" : "15:00（含）以前"
-            }）`,
-            ...priceLines,
-            `超時安親費：${formatMoney(quote.daycareFee)}`,
-            `預估合計：${formatMoney(quote.total)}`,
-            "",
-            "【飼主資料】",
-            `飼主姓名：${getReservationValue(formData, "ownerName")}`,
-            `聯絡電話：${getReservationValue(formData, "ownerPhone")}`,
-            `緊急聯絡人：${getReservationValue(formData, "emergencyName")}`,
-            `緊急聯絡電話：${getReservationValue(formData, "emergencyPhone")}`,
-            `與飼主關係：${getReservationValue(formData, "emergencyRelation")}`,
-          ];
-
-          for (let index = 1; index <= quote.cats; index += 1) {
-            lines.push(
-              "",
-              `【第 ${index} 隻貓咪】`,
-              `姓名：${getReservationValue(formData, `cat${index}Name`)}`,
-              `性別：${getReservationValue(formData, `cat${index}Sex`)}`,
-              `年齡：${getReservationValue(formData, `cat${index}Age`)} 歲`,
-              `結紮：${getReservationValue(formData, `cat${index}Neutered`)}`,
-              `貓砂：${getReservationValue(formData, `cat${index}Litter`)}`,
-              `飲食與餵食：${getReservationValue(formData, `cat${index}Diet`)}`,
-              `健康狀況：${getReservationValue(formData, `cat${index}Health`)}`,
-              `特殊需求：${getReservationValue(formData, `cat${index}Special`)}`,
-            );
-          }
-
-          lines.push(
-            "",
-            "【其他補充】",
-            getReservationValue(formData, "additionalNotes", "無"),
-            "",
-            "我想詢問以上日期是否有房，謝謝。",
-            "＊此為預約需求，不代表預約成立；房況、安排與最終金額以貓家日子回覆為準。",
-          );
-
-          return lines.join("\n");
-        }
-
-        function splitLineMessages(text, maxLength = 4300) {
-          const chunks = [];
-          let current = "";
-
-          for (const originalLine of text.split("\n")) {
-            let line = originalLine;
-            while (line.length > maxLength) {
-              const available = Math.max(1, maxLength - current.length - (current ? 1 : 0));
-              const piece = line.slice(0, available);
-              current = current ? `${current}\n${piece}` : piece;
-              chunks.push(current);
-              current = "";
-              line = line.slice(available);
-            }
-
-            const next = current ? `${current}\n${line}` : line;
-            if (next.length > maxLength) {
-              chunks.push(current);
-              current = line;
-            } else {
-              current = next;
-            }
-          }
-
-          if (current) chunks.push(current);
-          if (chunks.length > 5) throw new Error("預約資料內容過長，無法一次傳送至 LINE");
-          return chunks;
-        }
-
         function createBookingPayload(quote, reservationId) {
           const formData = new FormData(reservationForm);
           const cats = Array.from({ length: quote.cats }, (_, offset) => {
@@ -2454,17 +2236,6 @@
           }
         }
 
-        async function updateLineStatus(reservationId, lineStatus) {
-          try {
-            await postBookingPayload(
-              { action: "updateLineStatus", reservationId, lineStatus },
-              true,
-            );
-          } catch (error) {
-            // 預約主資料已寫入；狀態更新失敗不阻擋客人完成 LINE 傳送。
-          }
-        }
-
         function initializeDates() {
           const today = new Date();
           const checkIn = toLocalISO(today);
@@ -2521,76 +2292,41 @@
             return;
           }
 
-          if (!canSendViaLine()) {
-            reservationStatus.textContent =
-              "請從貓家日子官方帳號的一對一 LINE 對話內開啟預約頁後再送出。";
-            lineContextBanner.scrollIntoView({ behavior: "smooth", block: "center" });
-            return;
-          }
-
           const reservationId = pendingSubmission?.reservationId || generateReservationId();
           const payload = createBookingPayload(currentQuote, reservationId);
-          const reservationText = createReservationText(currentQuote, reservationId);
-          pendingSubmission = { reservationId, payload, reservationText };
-          let bookingSaved = false;
+          pendingSubmission = { reservationId, payload };
 
           try {
             setSubmitting(true, "正在登記預約…");
             reservationStatus.textContent = "正在安全登記預約資料，請勿關閉頁面。";
             await postBookingPayload(payload);
-            bookingSaved = true;
 
-            setSubmitting(true, "正在傳送至 LINE…");
-            reservationStatus.textContent = "資料已登記，正在傳送至貓家日子 LINE。";
-            const lineMessages = splitLineMessages(reservationText).map((text) => ({
-              type: "text",
-              text,
-            }));
-            await window.liff.sendMessages(lineMessages);
-            await updateLineStatus(reservationId, "已傳送");
-
-            reservationStatus.textContent = "預約資料與 LINE 訊息均已送出。";
+            reservationStatus.textContent = "預約資料已送出。";
             reservationStatus.classList.add("is-success");
             successReservationId.textContent = reservationId;
             reservationSuccess.hidden = false;
             submitButton.hidden = true;
             pendingSubmission = null;
           } catch (error) {
-            if (bookingSaved) {
-              await updateLineStatus(reservationId, "傳送失敗");
-              reservationStatus.textContent =
-                "預約資料已收到，但 LINE 訊息尚未傳出。請確認仍在 LINE 對話內，然後再按一次送出。";
-            } else {
-              reservationStatus.textContent =
-                "目前無法登記預約資料，請確認網路連線後再試一次。";
-            }
+            reservationStatus.textContent =
+              "目前無法登記預約資料，請確認網路連線後再試一次。";
           } finally {
             if (!submitButton.hidden) setSubmitting(false);
-          }
-        });
-
-        returnToLineButton.addEventListener("click", () => {
-          if (window.liff?.isInClient?.()) {
-            window.liff.closeWindow();
           }
         });
 
         initializeDates();
         output.versionTag.textContent = APP_VERSION;
         updateCalculator();
-        initializeLiff();
 
         // 保留純計算函式，方便日後自動測試與調整房價。
         window.CatStayCalculator = Object.freeze({
           calculateStay,
-          canSendViaLine,
           createBookingPayload,
-          createReservationText,
           daysBetween,
           generateReservationId,
           getLongStayTier,
           renderCatForms,
-          splitLineMessages,
           roomTypes: ROOM_TYPES,
         });
       })();

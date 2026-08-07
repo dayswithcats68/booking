@@ -3,7 +3,13 @@ const CONFIG = Object.freeze({
   bookingSheet: "住宿預約",
   catSheet: "貓咪資料",
   timezone: "Asia/Taipei",
-  source: "LINE LIFF",
+  source: "網站預約表單",
+});
+
+const LINE_CONFIG = Object.freeze({
+  channelAccessTokenProperty: "LINE_CHANNEL_ACCESS_TOKEN",
+  notificationToProperty: "LINE_NOTIFICATION_TO",
+  pushEndpoint: "https://api.line.me/v2/bot/message/push",
 });
 
 const ROOM_TYPES = Object.freeze({
@@ -16,9 +22,14 @@ const DAYCARE_RATE = 0.5;
 const ALLOWED_LINE_STATUSES = Object.freeze(["準備傳送", "已傳送", "傳送失敗"]);
 
 function doGet() {
+  const properties = PropertiesService.getScriptProperties();
   return jsonResponse_({
     ok: true,
     service: "days-with-cats-booking",
+    lineNotificationConfigured: Boolean(
+      properties.getProperty(LINE_CONFIG.channelAccessTokenProperty) &&
+      properties.getProperty(LINE_CONFIG.notificationToProperty)
+    ),
     timestamp: new Date().toISOString(),
   });
 }
@@ -159,7 +170,49 @@ function saveBooking_(payload) {
   catSheet.getRange(firstCatRow, 4, catRows.length, 2).setNumberFormat("yyyy/mm/dd");
   catSheet.getRange(firstCatRow, 1, catRows.length, catRows[0].length).setWrap(true);
 
-  return { reservationId, duplicate: false };
+  const notificationStatus = sendLineNotificationSafely_(ownerName);
+  bookingSheet.getRange(bookingRowNumber, 25).setValue(notificationStatus);
+
+  return { reservationId, duplicate: false, notificationStatus };
+}
+
+function sendLineNotificationSafely_(ownerName) {
+  try {
+    const properties = PropertiesService.getScriptProperties();
+    const channelAccessToken = String(
+      properties.getProperty(LINE_CONFIG.channelAccessTokenProperty) || ""
+    ).trim();
+    const notificationTo = String(
+      properties.getProperty(LINE_CONFIG.notificationToProperty) || ""
+    ).trim();
+
+    if (!channelAccessToken || !notificationTo) {
+      console.warn("LINE notification is not configured");
+      return "傳送失敗";
+    }
+
+    const response = UrlFetchApp.fetch(LINE_CONFIG.pushEndpoint, {
+      method: "post",
+      contentType: "application/json",
+      headers: {
+        Authorization: `Bearer ${channelAccessToken}`,
+      },
+      payload: JSON.stringify({
+        to: notificationTo,
+        messages: [{ type: "text", text: `${ownerName}已預約` }],
+      }),
+      muteHttpExceptions: true,
+    });
+
+    const statusCode = response.getResponseCode();
+    if (statusCode >= 200 && statusCode < 300) return "已傳送";
+
+    console.error(`LINE notification failed with status ${statusCode}`);
+    return "傳送失敗";
+  } catch (error) {
+    console.error(error);
+    return "傳送失敗";
+  }
 }
 
 function updateLineStatus_(payload) {
