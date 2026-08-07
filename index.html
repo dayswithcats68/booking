@@ -529,10 +529,19 @@
         font-size: 0.79rem;
       }
 
-      .time-options {
+      .time-options,
+      .meal-options {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
+      }
+
+      .meal-quantity-row {
+        margin-top: 12px;
+      }
+
+      .meal-quantity-row[hidden] {
+        display: none;
       }
 
       .time-choice-body {
@@ -892,7 +901,7 @@
 
       .booking-summary {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 10px;
         margin: 0;
       }
@@ -1278,6 +1287,7 @@
         .room-options,
         .date-grid,
         .time-options,
+        .meal-options,
         .form-grid,
         .booking-summary {
           grid-template-columns: 1fr;
@@ -1502,6 +1512,85 @@
               </div>
             </fieldset>
           </section>
+
+          <section class="section" aria-labelledby="mealHeading">
+            <h2 class="section-heading" id="mealHeading">
+              <span class="step-number" aria-hidden="true">5</span>
+              是否加購伙食
+            </h2>
+
+            <fieldset>
+              <legend class="visually-hidden">伙食加購方案</legend>
+              <div class="meal-options">
+                <label class="time-choice">
+                  <input type="radio" name="mealPlan" value="none" checked />
+                  <span class="time-choice-body">
+                    <span class="radio-dot" aria-hidden="true"></span>
+                    <span class="time-choice-copy">
+                      <strong>不加購</strong>
+                      <span>由飼主自備伙食</span>
+                    </span>
+                  </span>
+                </label>
+
+                <label class="time-choice">
+                  <input type="radio" name="mealPlan" value="dry" />
+                  <span class="time-choice-body">
+                    <span class="radio-dot" aria-hidden="true"></span>
+                    <span class="time-choice-copy">
+                      <strong>乾飼料</strong>
+                      <span>每隻每日 NT$50</span>
+                    </span>
+                  </span>
+                </label>
+
+                <label class="time-choice">
+                  <input type="radio" name="mealPlan" value="canned" />
+                  <span class="time-choice-body">
+                    <span class="radio-dot" aria-hidden="true"></span>
+                    <span class="time-choice-copy">
+                      <strong>罐頭</strong>
+                      <span>每隻每罐 NT$30</span>
+                    </span>
+                  </span>
+                </label>
+
+                <label class="time-choice">
+                  <input type="radio" name="mealPlan" value="combo" />
+                  <span class="time-choice-body">
+                    <span class="radio-dot" aria-hidden="true"></span>
+                    <span class="time-choice-copy">
+                      <strong>套組方案</strong>
+                      <span>早晚各一罐＋乾飼料・每隻每日 NT$100</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="cat-row meal-quantity-row" id="cannedQuantityRow" hidden>
+              <div class="cat-copy">
+                <strong>每隻貓每天需要幾罐？</strong>
+                <span>罐頭費為 NT$30 × 罐數 × 貓咪數量 × 住宿日數</span>
+              </div>
+              <div class="stepper" role="group" aria-label="每隻貓每日罐頭數量">
+                <button type="button" id="decreaseCans" aria-label="減少一罐">−</button>
+                <input
+                  id="cansPerCatPerDay"
+                  name="cansPerCatPerDay"
+                  type="number"
+                  value="1"
+                  min="1"
+                  max="20"
+                  step="1"
+                  inputmode="numeric"
+                  aria-label="每隻貓每日罐頭數量"
+                />
+                <button type="button" id="increaseCans" aria-label="增加一罐">＋</button>
+              </div>
+            </div>
+            <p class="date-caption">伙食費按入住貓咪數量與住宿晚數計算，不參與長住折扣。</p>
+          </section>
         </form>
 
         <aside class="panel summary-panel" aria-labelledby="summaryHeading">
@@ -1510,7 +1599,7 @@
               <span id="summaryHeading">您的試算結果</span>
               <span class="live-badge">自動計算</span>
             </div>
-            <p class="total-label">預估住宿總額</p>
+            <p class="total-label">預估總額</p>
             <p class="total-amount" id="totalAmount" aria-live="polite">NT$0</p>
             <p class="stay-summary" id="staySummary">請選擇預計住宿日期</p>
             <span class="discount-badge" id="discountBadge" hidden>長住優惠已套用</span>
@@ -1537,6 +1626,10 @@
               <div class="breakdown-row">
                 <dt>超時安親費<span id="daycareLabel">15:00（含）前退宿</span></dt>
                 <dd id="daycareFee">NT$0</dd>
+              </div>
+              <div class="breakdown-row">
+                <dt>伙食加購<span id="mealLabel">不加購</span></dt>
+                <dd id="mealFee">NT$0</dd>
               </div>
             </dl>
 
@@ -1596,6 +1689,10 @@
                 <div>
                   <dt>貓咪數量</dt>
                   <dd id="reservationCats">—</dd>
+                </div>
+                <div>
+                  <dt>伙食加購</dt>
+                  <dd id="reservationMeal">—</dd>
                 </div>
                 <div>
                   <dt>預估總額</dt>
@@ -1783,11 +1880,19 @@
           family: { name: "探險家庭房", baseRate: 1300, maxCats: 6 },
         });
 
+        const MEAL_PLANS = Object.freeze({
+          none: { name: "不加購", dailyRatePerCat: 0 },
+          dry: { name: "乾飼料", dailyRatePerCat: 50 },
+          canned: { name: "罐頭", canRate: 30 },
+          combo: { name: "套組方案（早晚各一罐＋乾飼料）", dailyRatePerCat: 100 },
+        });
+
         const APP_VERSION = "線上預約與雲端登記頁面";
         const APP_CONFIG = window.CAT_STAY_CONFIG || {};
         const BOOKING_ENDPOINT = String(APP_CONFIG.bookingEndpoint || "").trim();
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
+        const MAX_CANS_PER_CAT_PER_DAY = 20;
         const LONG_STAY_TIERS = Object.freeze([
           { minimumNights: 14, multiplier: 0.9, name: "9 折", description: "14 晚以上・9 折" },
           { minimumNights: 7, multiplier: 0.95, name: "95 折", description: "7–13 晚・95 折" },
@@ -1801,6 +1906,10 @@
         const checkInInput = document.getElementById("checkIn");
         const checkOutInput = document.getElementById("checkOut");
         const catLimitNote = document.getElementById("catLimitNote");
+        const cannedQuantityRow = document.getElementById("cannedQuantityRow");
+        const cansPerCatPerDayInput = document.getElementById("cansPerCatPerDay");
+        const decreaseCansButton = document.getElementById("decreaseCans");
+        const increaseCansButton = document.getElementById("increaseCans");
         const dateError = document.getElementById("dateError");
         const estimateStep = document.getElementById("estimateStep");
         const reservationStep = document.getElementById("reservationStep");
@@ -1832,11 +1941,14 @@
           discountedStaySubtotal: document.getElementById("discountedStaySubtotal"),
           daycareLabel: document.getElementById("daycareLabel"),
           daycareFee: document.getElementById("daycareFee"),
+          mealLabel: document.getElementById("mealLabel"),
+          mealFee: document.getElementById("mealFee"),
           formulaNote: document.getElementById("formulaNote"),
           versionTag: document.getElementById("versionTag"),
           reservationRoom: document.getElementById("reservationRoom"),
           reservationDates: document.getElementById("reservationDates"),
           reservationCats: document.getElementById("reservationCats"),
+          reservationMeal: document.getElementById("reservationMeal"),
           reservationTotal: document.getElementById("reservationTotal"),
         };
 
@@ -1918,6 +2030,20 @@
           return Math.min(maxCats, Math.max(1, parsed));
         }
 
+        function clampCans(value) {
+          const parsed = Number.parseInt(value, 10);
+          if (!Number.isFinite(parsed)) return 1;
+          return Math.min(MAX_CANS_PER_CAT_PER_DAY, Math.max(1, parsed));
+        }
+
+        function describeMeal(quote) {
+          if (quote.mealPlanKey === "none") return "不加購";
+          if (quote.mealPlanKey === "canned") {
+            return `${quote.mealPlan.name}・每隻每日 ${quote.cansPerCatPerDay} 罐`;
+          }
+          return `${quote.mealPlan.name}・每隻每日 ${formatMoney(quote.mealDailyRatePerCat)}`;
+        }
+
         function getLongStayTier(nights) {
           return (
             LONG_STAY_TIERS.find((tier) => nights >= tier.minimumNights) || {
@@ -1929,10 +2055,28 @@
           );
         }
 
-        function calculateStay({ roomKey, cats, checkIn, checkOut, isLate }) {
+        function calculateStay({
+          roomKey,
+          cats,
+          checkIn,
+          checkOut,
+          isLate,
+          mealPlanKey = "none",
+          cansPerCatPerDay = 1,
+        }) {
           const room = ROOM_TYPES[roomKey];
           const normalizedCats = clampCats(cats, room.maxCats);
           const nights = daysBetween(checkIn, checkOut);
+          const normalizedMealPlanKey = MEAL_PLANS[mealPlanKey] ? mealPlanKey : "none";
+          const mealPlan = MEAL_PLANS[normalizedMealPlanKey];
+          const normalizedCansPerCatPerDay =
+            normalizedMealPlanKey === "canned" ? clampCans(cansPerCatPerDay) : 0;
+          const mealDailyRatePerCat =
+            normalizedMealPlanKey === "canned"
+              ? mealPlan.canRate * normalizedCansPerCatPerDay
+              : mealPlan.dailyRatePerCat;
+          const mealDailyRate = mealDailyRatePerCat * normalizedCats;
+          const mealSubtotal = mealDailyRate * nights;
           const extraCatFeePerNight = EXTRA_CAT_RATE * Math.max(0, normalizedCats - 1);
           const nightlyRate = room.baseRate + extraCatFeePerNight;
           const staySubtotal = nightlyRate * nights;
@@ -1950,6 +2094,12 @@
             checkOut,
             isLate,
             nights,
+            mealPlan,
+            mealPlanKey: normalizedMealPlanKey,
+            cansPerCatPerDay: normalizedCansPerCatPerDay,
+            mealDailyRatePerCat,
+            mealDailyRate,
+            mealSubtotal,
             extraCatFeePerNight,
             nightlyRate,
             staySubtotal,
@@ -1960,7 +2110,7 @@
             discountAmount,
             discountedStaySubtotal,
             daycareFee,
-            total: discountedStaySubtotal + daycareFee,
+            total: discountedStaySubtotal + daycareFee + mealSubtotal,
           };
         }
 
@@ -1972,6 +2122,8 @@
             checkIn: checkInInput.value,
             checkOut: checkOutInput.value,
             isLate: form.elements.checkoutTime.value === "late",
+            mealPlanKey: form.elements.mealPlan.value,
+            cansPerCatPerDay: clampCans(cansPerCatPerDayInput.value),
           };
         }
 
@@ -2005,6 +2157,8 @@
             ? "單晚房價 × 50%"
             : "15:00（含）前退宿";
           output.daycareFee.textContent = "NT$0";
+          output.mealLabel.textContent = MEAL_PLANS[state.mealPlanKey].name;
+          output.mealFee.textContent = "NT$0";
           startReservationButton.disabled = true;
           setDateError(message);
         }
@@ -2042,16 +2196,19 @@
             ? `${formatMoney(quote.nightlyRate)} × 50%`
             : "15:00（含）前退宿";
           output.daycareFee.textContent = formatMoney(quote.daycareFee);
+          output.mealLabel.textContent = describeMeal(quote);
+          output.mealFee.textContent = formatMoney(quote.mealSubtotal);
           const discountText = quote.discountRate
             ? ` × ${quote.discountMultiplier}＝${formatMoney(
                 quote.discountedStaySubtotal,
               )}`
             : "";
-          output.formulaNote.textContent = quote.isLate
-            ? `住宿費 ${formatMoney(quote.staySubtotal)}${discountText}，另加 ${formatMoney(
-                quote.daycareFee,
-              )} 安親費。`
-            : `住宿費 ${formatMoney(quote.staySubtotal)}${discountText}。`;
+          const feeParts = [`住宿費 ${formatMoney(quote.staySubtotal)}${discountText}`];
+          if (quote.isLate) feeParts.push(`超時安親費 ${formatMoney(quote.daycareFee)}`);
+          if (quote.mealSubtotal) {
+            feeParts.push(`${describeMeal(quote)} ${formatMoney(quote.mealSubtotal)}`);
+          }
+          output.formulaNote.textContent = `${feeParts.join("，")}。長住折扣僅適用住宿費。`;
 
           startReservationButton.disabled = false;
           setDateError();
@@ -2065,6 +2222,11 @@
           catLimitNote.textContent = `第 2 隻起每隻每晚加收 NT$200・本房最多 ${maxCats} 貓`;
           decreaseCatsButton.disabled = state.cats <= 1;
           increaseCatsButton.disabled = state.cats >= maxCats;
+          cannedQuantityRow.hidden = state.mealPlanKey !== "canned";
+          cansPerCatPerDayInput.value = state.cansPerCatPerDay;
+          decreaseCansButton.disabled = state.cansPerCatPerDay <= 1;
+          increaseCansButton.disabled =
+            state.cansPerCatPerDay >= MAX_CANS_PER_CAT_PER_DAY;
 
           if (!state.checkIn || !state.checkOut) {
             renderEmptyState(state, "請完整選擇入住日期與退宿日期。");
@@ -2092,6 +2254,7 @@
             quote.checkIn,
           )}–${formatDateForQuote(quote.checkOut)}・${quote.nights} 晚`;
           output.reservationCats.textContent = `${quote.cats} 隻`;
+          output.reservationMeal.textContent = describeMeal(quote);
           output.reservationTotal.textContent = formatMoney(quote.total);
 
           if (quote.isLate) {
@@ -2276,6 +2439,8 @@
               checkIn: quote.checkIn,
               checkOut: quote.checkOut,
               isLate: quote.isLate,
+              mealPlanKey: quote.mealPlanKey,
+              cansPerCatPerDay: quote.cansPerCatPerDay,
               arrivalTime: getReservationValue(formData, "arrivalTime", ""),
               departureTime: getReservationValue(formData, "departureTime", ""),
             },
@@ -2346,6 +2511,21 @@
           setCatCount(catCountInput.value);
         });
 
+        decreaseCansButton.addEventListener("click", () => {
+          cansPerCatPerDayInput.value = clampCans(Number(cansPerCatPerDayInput.value) - 1);
+          updateCalculator();
+        });
+
+        increaseCansButton.addEventListener("click", () => {
+          cansPerCatPerDayInput.value = clampCans(Number(cansPerCatPerDayInput.value) + 1);
+          updateCalculator();
+        });
+
+        cansPerCatPerDayInput.addEventListener("blur", () => {
+          cansPerCatPerDayInput.value = clampCans(cansPerCatPerDayInput.value);
+          updateCalculator();
+        });
+
         startReservationButton.addEventListener("click", showReservationStep);
         backToEstimateButton.addEventListener("click", showEstimateStep);
 
@@ -2402,6 +2582,7 @@
           daysBetween,
           generateReservationId,
           getLongStayTier,
+          mealPlans: MEAL_PLANS,
           renderCatForms,
           roomTypes: ROOM_TYPES,
         });

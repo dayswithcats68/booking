@@ -17,9 +17,24 @@ const ROOM_TYPES = Object.freeze({
   family: { name: "探險家庭房", baseRate: 1300, maxCats: 6 },
 });
 
+const MEAL_PLANS = Object.freeze({
+  none: { name: "不加購", dailyRatePerCat: 0 },
+  dry: { name: "乾飼料", dailyRatePerCat: 50 },
+  canned: { name: "罐頭", canRate: 30 },
+  combo: { name: "套組方案（早晚各一罐＋乾飼料）", dailyRatePerCat: 100 },
+});
+
 const EXTRA_CAT_RATE = 200;
 const DAYCARE_RATE = 0.5;
+const MAX_CANS_PER_CAT_PER_DAY = 20;
 const ALLOWED_EMAIL_STATUSES = Object.freeze(["準備寄送", "已寄送", "寄送失敗"]);
+const MEAL_HEADERS = Object.freeze([
+  "伙食方案",
+  "每貓每日罐數",
+  "每貓每日伙食費",
+  "伙食計費日數",
+  "伙食小計",
+]);
 
 function doGet() {
   const properties = PropertiesService.getScriptProperties();
@@ -109,6 +124,7 @@ function saveBooking_(payload) {
     ? payload.emailStatus
     : "準備寄送";
   const additionalNotes = optionalText_(payload.additionalNotes, 300);
+  bookingSheet.getRange(1, 27, 1, MEAL_HEADERS.length).setValues([MEAL_HEADERS]);
   const bookingRow = [
     safeText_(reservationId),
     submittedAt,
@@ -136,6 +152,11 @@ function saveBooking_(payload) {
     safeText_(additionalNotes),
     emailStatus,
     CONFIG.source,
+    safeText_(quote.mealPlan.name),
+    quote.cansPerCatPerDay,
+    quote.mealDailyRatePerCat,
+    quote.nights,
+    quote.mealSubtotal,
   ];
 
   const bookingRowNumber = bookingSheet.getLastRow() + 1;
@@ -146,6 +167,7 @@ function saveBooking_(payload) {
   bookingSheet.getRange(bookingRowNumber, 10).setNumberFormat("yyyy/mm/dd");
   bookingSheet.getRange(bookingRowNumber, 12).setNumberFormat("yyyy/mm/dd");
   bookingSheet.getRange(bookingRowNumber, 16, 1, 7).setNumberFormat("#,##0");
+  bookingSheet.getRange(bookingRowNumber, 28, 1, 4).setNumberFormat("#,##0");
   bookingSheet.getRange(bookingRowNumber, 1, 1, bookingRow.length).setWrap(true);
 
   const catRows = normalizedCats.map((cat, index) => [
@@ -173,9 +195,19 @@ function saveBooking_(payload) {
 
   const notificationStatus = sendEmailNotificationSafely_({
     reservationId,
-    ownerName,
-    ownerPhone,
+    submittedAt,
+    owner: {
+      name: ownerName,
+      phone: ownerPhone,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+    },
+    arrivalTime,
+    departureTime,
     quote,
+    cats: normalizedCats,
+    additionalNotes,
   });
   bookingSheet.getRange(bookingRowNumber, 25).setValue(notificationStatus);
 
@@ -191,23 +223,11 @@ function sendEmailNotificationSafely_(booking) {
     }
 
     const subject = [
-      `【新預約】${booking.ownerName}`,
+      `【新預約】${booking.owner.name}`,
       `${booking.quote.checkIn}–${booking.quote.checkOut}`,
       `${booking.quote.cats} 隻貓`,
     ].join("｜");
-    const body = [
-      "貓家日子收到一筆新的住宿預約。",
-      "",
-      `預約編號：${booking.reservationId}`,
-      `飼主姓名：${booking.ownerName}`,
-      `聯絡電話：${booking.ownerPhone}`,
-      `住宿日期：${booking.quote.checkIn}–${booking.quote.checkOut}（${booking.quote.nights} 晚）`,
-      `房型：${booking.quote.room.name}`,
-      `貓咪數量：${booking.quote.cats} 隻`,
-      `預估金額：NT$${formatInteger_(booking.quote.total)}`,
-      "",
-      `查看完整預約資料：${EMAIL_CONFIG.spreadsheetUrl}`,
-    ].join("\n");
+    const body = createDetailedEmailBody_(booking);
 
     MailApp.sendEmail({
       to: recipients.join(","),
@@ -220,6 +240,68 @@ function sendEmailNotificationSafely_(booking) {
     console.error(error);
     return "寄送失敗";
   }
+}
+
+function createDetailedEmailBody_(booking) {
+  const quote = booking.quote;
+  const owner = booking.owner;
+  const discountLine = quote.discountAmount
+    ? `${quote.discountName}（−NT$${formatInteger_(quote.discountAmount)}）`
+    : "無折扣";
+  const mealLine = quote.mealPlanKey === "none"
+    ? "不加購"
+    : quote.mealPlanKey === "canned"
+      ? `${quote.mealPlan.name}｜每隻每日 ${quote.cansPerCatPerDay} 罐｜每隻每日 NT$${formatInteger_(quote.mealDailyRatePerCat)}`
+      : `${quote.mealPlan.name}｜每隻每日 NT$${formatInteger_(quote.mealDailyRatePerCat)}`;
+  const catSections = booking.cats.flatMap((cat, index) => [
+    `第 ${index + 1} 隻｜${cat.name}`,
+    `性別：${cat.sex}`,
+    `年齡：${cat.age} 歲`,
+    `結紮：${cat.neutered}`,
+    `貓砂：${cat.litter}`,
+    `飲食習慣與餵食方式：${cat.diet}`,
+    `健康狀況、過敏或慢性病：${cat.health}`,
+    `特殊需求與照護提醒：${cat.special}`,
+    "",
+  ]);
+
+  return [
+    "貓家日子收到一筆新的住宿預約。",
+    "",
+    "【預約資訊】",
+    `預約編號：${booking.reservationId}`,
+    `送出時間：${formatTaipeiDateTime_(booking.submittedAt)}`,
+    `房型：${quote.room.name}`,
+    `入住：${quote.checkIn} ${booking.arrivalTime}`,
+    `退宿：${quote.checkOut} ${booking.departureTime}`,
+    `住宿晚數：${quote.nights} 晚`,
+    `退宿時段：${quote.isLate ? "超過 15:00" : "15:00（含）以前"}`,
+    `貓咪數量：${quote.cats} 隻`,
+    `伙食加購：${mealLine}`,
+    "",
+    "【費用明細】",
+    `單晚房價：NT$${formatInteger_(quote.nightlyRate)}`,
+    `住宿原價：NT$${formatInteger_(quote.staySubtotal)}`,
+    `長住優惠：${discountLine}`,
+    `折扣後住宿費：NT$${formatInteger_(quote.discountedStaySubtotal)}`,
+    `超時安親費：NT$${formatInteger_(quote.daycareFee)}`,
+    `伙食加購：NT$${formatInteger_(quote.mealSubtotal)}`,
+    `預估總額：NT$${formatInteger_(quote.total)}`,
+    "",
+    "【飼主與緊急聯絡】",
+    `飼主姓名：${owner.name}`,
+    `聯絡電話：${owner.phone}`,
+    `緊急聯絡人：${owner.emergencyName}`,
+    `緊急聯絡電話：${owner.emergencyPhone}`,
+    `與飼主關係：${owner.emergencyRelation || "未填"}`,
+    "",
+    "【入住貓咪資料】",
+    ...catSections,
+    "【其他補充】",
+    booking.additionalNotes || "無",
+    "",
+    `查看預約資料表：${EMAIL_CONFIG.spreadsheetUrl}`,
+  ].join("\n");
 }
 
 function getNotificationEmails_() {
@@ -247,6 +329,10 @@ function isValidEmail_(value) {
 
 function formatInteger_(value) {
   return Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function formatTaipeiDateTime_(value) {
+  return Utilities.formatDate(new Date(value), CONFIG.timezone, "yyyy/MM/dd HH:mm:ss");
 }
 
 function updateEmailStatus_(payload) {
@@ -295,6 +381,25 @@ function calculateQuote_(booking) {
   }
 
   const isLate = booking.isLate === true;
+  const mealPlanKey = optionalText_(booking.mealPlanKey, 20) || "none";
+  const mealPlan = MEAL_PLANS[mealPlanKey];
+  if (!mealPlan) throw new Error("伙食方案不正確");
+  let cansPerCatPerDay = 0;
+  if (mealPlanKey === "canned") {
+    cansPerCatPerDay = Number(booking.cansPerCatPerDay);
+    if (
+      !Number.isInteger(cansPerCatPerDay) ||
+      cansPerCatPerDay < 1 ||
+      cansPerCatPerDay > MAX_CANS_PER_CAT_PER_DAY
+    ) {
+      throw new Error("每隻貓每日罐頭數量不正確");
+    }
+  }
+  const mealDailyRatePerCat = mealPlanKey === "canned"
+    ? mealPlan.canRate * cansPerCatPerDay
+    : mealPlan.dailyRatePerCat;
+  const mealDailyRate = mealDailyRatePerCat * cats;
+  const mealSubtotal = mealDailyRate * nights;
   const nightlyRate = room.baseRate + EXTRA_CAT_RATE * Math.max(0, cats - 1);
   const staySubtotal = nightlyRate * nights;
   const discountMultiplier = nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
@@ -310,13 +415,19 @@ function calculateQuote_(booking) {
     nights,
     cats,
     isLate,
+    mealPlan,
+    mealPlanKey,
+    cansPerCatPerDay,
+    mealDailyRatePerCat,
+    mealDailyRate,
+    mealSubtotal,
     nightlyRate,
     staySubtotal,
     discountName,
     discountAmount,
     discountedStaySubtotal,
     daycareFee,
-    total: discountedStaySubtotal + daycareFee,
+    total: discountedStaySubtotal + daycareFee + mealSubtotal,
   };
 }
 
