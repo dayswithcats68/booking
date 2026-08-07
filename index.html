@@ -1409,7 +1409,7 @@
           if (!currentQuote) return;
           try {
             await copyText(createQuoteText(currentQuote));
-            showCopyState("已複製，可貼給貓家日子詢問房況", true);
+            showCopyState("已複製！", true);
           } catch (error) {
             showCopyState("複製失敗，請再試一次", false);
           }
