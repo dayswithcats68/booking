@@ -5,10 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="貓家日子住宿費用試算：選擇房型、貓咪數量、住宿日期與退宿時間，快速估算住宿費用。"
+      content="貓家日子住宿試算與預約：選擇房型、貓咪數量與日期，試算後可直接填寫資料並傳送至 LINE 官方帳號。"
     />
     <meta name="theme-color" content="#f7f1e7" />
-    <title>貓家日子｜貓咪住宿費用試算</title>
+    <meta property="og:title" content="貓家日子｜貓咪住宿試算與預約" />
+    <meta
+      property="og:description"
+      content="快速試算貓咪住宿費用，接著填寫預約資料並傳送至貓家日子 LINE 官方帳號。"
+    />
+    <meta
+      property="og:image"
+      content="https://dayswithcats68.github.io/booking/assets/days-with-cats-logo.png"
+    />
+    <link rel="icon" href="assets/days-with-cats-logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/days-with-cats-logo.png" />
+    <title>貓家日子｜貓咪住宿試算與預約</title>
 
     <style>
       :root {
@@ -57,7 +68,9 @@
       }
 
       button,
-      input {
+      input,
+      select,
+      textarea {
         font: inherit;
       }
 
@@ -90,41 +103,16 @@
         gap: 15px;
       }
 
-      .brand-mark {
-        position: relative;
-        display: grid;
-        width: 58px;
-        height: 58px;
+      .brand-logo {
+        display: block;
+        width: 94px;
+        height: 94px;
         flex: 0 0 auto;
-        place-items: center;
-        overflow: hidden;
         border: 1px solid rgba(114, 72, 51, 0.16);
-        border-radius: 19px;
+        border-radius: 25px;
         background: var(--brand-soft);
-        color: var(--brand-dark);
-        font-size: 27px;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-      }
-
-      .brand-mark::before,
-      .brand-mark::after {
-        position: absolute;
-        top: -5px;
-        width: 21px;
-        height: 21px;
-        border-radius: 4px;
-        background: var(--brand);
-        content: "";
-        opacity: 0.22;
-        transform: rotate(45deg);
-      }
-
-      .brand-mark::before {
-        left: 6px;
-      }
-
-      .brand-mark::after {
-        right: 6px;
+        object-fit: cover;
       }
 
       .eyebrow {
@@ -150,6 +138,56 @@
         color: var(--muted);
         font-size: 0.94rem;
         text-align: right;
+      }
+
+      .flow-progress {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        max-width: 560px;
+        margin: 0 0 22px;
+      }
+
+      .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 13px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 253, 249, 0.72);
+        color: var(--muted);
+        font-size: 0.77rem;
+        font-weight: 800;
+      }
+
+      .progress-step::before {
+        display: grid;
+        width: 23px;
+        height: 23px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--canvas-deep);
+        color: var(--brand-dark);
+        content: attr(data-step);
+        font-size: 0.68rem;
+      }
+
+      .progress-step.is-current {
+        border-color: rgba(114, 72, 51, 0.4);
+        background: var(--brand-soft);
+        color: var(--brand-dark);
+      }
+
+      .progress-step.is-current::before,
+      .progress-step.is-complete::before {
+        background: var(--brand-dark);
+        color: white;
+      }
+
+      .step-view[hidden] {
+        display: none;
       }
 
       .calculator-grid {
@@ -381,9 +419,13 @@
       }
 
       .stepper button:focus-visible,
-      .copy-button:focus-visible {
+      .primary-button:focus-visible,
+      .secondary-button:focus-visible,
+      .text-input:focus,
+      .select-input:focus,
+      .textarea-input:focus {
         outline: 3px solid rgba(128, 146, 124, 0.45);
-        outline-offset: -3px;
+        outline-offset: 2px;
       }
 
       .stepper button:disabled {
@@ -690,7 +732,7 @@
         line-height: 1.65;
       }
 
-      .copy-button {
+      .primary-button {
         display: inline-flex;
         width: 100%;
         min-height: 52px;
@@ -709,17 +751,292 @@
           transform 150ms ease;
       }
 
-      .copy-button:hover {
+      .primary-button:hover {
         background: #3a3731;
         transform: translateY(-1px);
       }
 
-      .copy-button:active {
+      .primary-button:active {
         transform: translateY(0);
       }
 
-      .copy-button.is-copied {
-        background: var(--sage);
+      .primary-button:disabled {
+        background: #aaa39a;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .line-button {
+        background: #168c46;
+      }
+
+      .line-button:hover {
+        background: #10763a;
+      }
+
+      .button-arrow {
+        font-size: 1.08rem;
+        line-height: 1;
+      }
+
+      .reservation-panel {
+        overflow: hidden;
+      }
+
+      .reservation-hero {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: clamp(24px, 4vw, 38px);
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 58%),
+          var(--brand-soft);
+      }
+
+      .reservation-eyebrow {
+        margin: 0 0 5px;
+        color: var(--brand-dark);
+        font-size: 0.73rem;
+        font-weight: 900;
+        letter-spacing: 0.13em;
+      }
+
+      .reservation-title {
+        margin: 0;
+        font-family: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+        font-size: clamp(1.55rem, 3vw, 2.2rem);
+        line-height: 1.2;
+      }
+
+      .reservation-intro {
+        max-width: 650px;
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .secondary-button {
+        min-height: 42px;
+        flex: 0 0 auto;
+        padding: 9px 14px;
+        border: 1px solid rgba(114, 72, 51, 0.28);
+        border-radius: 12px;
+        background: rgba(255, 253, 249, 0.72);
+        color: var(--brand-dark);
+        cursor: pointer;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .reservation-form {
+        padding: clamp(24px, 4vw, 38px);
+      }
+
+      .reservation-section + .reservation-section {
+        padding-top: 30px;
+        margin-top: 30px;
+        border-top: 1px solid var(--line);
+      }
+
+      .reservation-section-title {
+        margin: 0 0 15px;
+        font-size: 1rem;
+      }
+
+      .reservation-section-note {
+        margin: -8px 0 16px;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .booking-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 0;
+      }
+
+      .booking-summary > div {
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--canvas);
+      }
+
+      .booking-summary dt,
+      .booking-summary dd {
+        margin: 0;
+      }
+
+      .booking-summary dt {
+        color: var(--muted);
+        font-size: 0.69rem;
+      }
+
+      .booking-summary dd {
+        margin-top: 4px;
+        overflow-wrap: anywhere;
+        color: var(--brand-dark);
+        font-size: 0.88rem;
+        font-weight: 900;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 15px;
+      }
+
+      .field-group {
+        min-width: 0;
+      }
+
+      .field-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .input-label {
+        display: block;
+        margin: 0 0 7px 2px;
+        color: var(--ink);
+        font-size: 0.79rem;
+        font-weight: 800;
+      }
+
+      .required-mark {
+        margin-left: 3px;
+        color: var(--danger);
+      }
+
+      .text-input,
+      .select-input,
+      .textarea-input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        outline: 0;
+        background: var(--paper);
+        color: var(--ink);
+        transition:
+          border-color 140ms ease,
+          box-shadow 140ms ease;
+      }
+
+      .text-input,
+      .select-input {
+        min-height: 49px;
+        padding: 0 13px;
+      }
+
+      .textarea-input {
+        min-height: 102px;
+        padding: 12px 13px;
+        line-height: 1.6;
+        resize: vertical;
+      }
+
+      .text-input:focus,
+      .select-input:focus,
+      .textarea-input:focus {
+        border-color: var(--sage);
+        box-shadow: 0 0 0 3px rgba(128, 146, 124, 0.2);
+      }
+
+      .text-input:user-invalid,
+      .select-input:user-invalid,
+      .textarea-input:user-invalid {
+        border-color: rgba(160, 68, 56, 0.7);
+      }
+
+      .field-help {
+        display: block;
+        margin: 6px 2px 0;
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .cat-forms {
+        display: grid;
+        gap: 16px;
+      }
+
+      .cat-profile {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: rgba(246, 240, 230, 0.58);
+      }
+
+      .cat-profile-heading {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 17px;
+        color: var(--brand-dark);
+        font-size: 0.92rem;
+      }
+
+      .cat-profile-heading::before {
+        display: grid;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--brand-dark);
+        color: white;
+        content: "🐾";
+        font-size: 0.7rem;
+      }
+
+      .confirmation-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        padding: 15px 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--sage-soft);
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+
+      .confirmation-box input {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        margin: 2px 0 0;
+        accent-color: var(--sage);
+      }
+
+      .reservation-actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .privacy-note,
+      .line-fallback {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.72rem;
+        line-height: 1.65;
+        text-align: center;
+      }
+
+      .line-fallback a {
+        color: var(--brand-dark);
+        font-weight: 800;
+      }
+
+      .reservation-status {
+        min-height: 1.4em;
+        margin: 8px 0 0;
+        color: var(--danger);
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-align: center;
       }
 
       .footer-note {
@@ -748,7 +1065,7 @@
 
         .masthead-note {
           max-width: none;
-          margin: 17px 0 0 73px;
+          margin: 17px 0 0 111px;
           text-align: left;
         }
 
@@ -758,6 +1075,10 @@
 
         .summary-panel {
           position: static;
+        }
+
+        .booking-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
@@ -776,11 +1097,10 @@
           gap: 11px;
         }
 
-        .brand-mark {
-          width: 48px;
-          height: 48px;
-          border-radius: 15px;
-          font-size: 22px;
+        .brand-logo {
+          width: 72px;
+          height: 72px;
+          border-radius: 19px;
         }
 
         .eyebrow {
@@ -794,6 +1114,29 @@
         .masthead-note {
           margin: 13px 2px 0;
           font-size: 0.84rem;
+        }
+
+        .flow-progress {
+          gap: 7px;
+        }
+
+        .progress-step {
+          padding: 8px 9px;
+          font-size: 0.69rem;
+        }
+
+        .reservation-hero {
+          display: block;
+          padding: 24px 20px;
+        }
+
+        .reservation-hero .secondary-button {
+          width: 100%;
+          margin-top: 18px;
+        }
+
+        .reservation-form {
+          padding: 24px 18px 26px;
         }
 
         .panel {
@@ -811,8 +1154,18 @@
 
         .room-options,
         .date-grid,
-        .time-options {
+        .time-options,
+        .form-grid,
+        .booking-summary {
           grid-template-columns: 1fr;
+        }
+
+        .field-group.full-width {
+          grid-column: auto;
+        }
+
+        .cat-profile {
+          padding: 18px 15px;
         }
 
         .choice-card-body {
@@ -856,18 +1209,34 @@
     <main class="page-shell">
       <header class="masthead">
         <div class="brand-lockup">
-          <div class="brand-mark" aria-hidden="true">🐾</div>
+          <img
+            class="brand-logo"
+            src="assets/days-with-cats-logo.png"
+            alt="貓家日子 Logo"
+            width="1920"
+            height="1920"
+          />
           <div>
             <p class="eyebrow">貓家日子・CAT HOTEL</p>
-            <h1>貓咪住宿費用試算</h1>
+            <h1>貓咪住宿試算與預約</h1>
           </div>
         </div>
         <p class="masthead-note">
-          預計帶貓咪來住宿嗎？選擇房型、貓咪數量與日期，即可快速估算住宿費用。
+          先試算住宿費用，再填寫必要資料，即可帶入 LINE 官方帳號詢問房況。
         </p>
       </header>
 
-      <div class="calculator-grid">
+      <nav class="flow-progress" aria-label="預約進度">
+        <span class="progress-step is-current" id="estimateProgress" data-step="1">
+          試算住宿費用
+        </span>
+        <span class="progress-step" id="reservationProgress" data-step="2">
+          填寫預約資料
+        </span>
+      </nav>
+
+      <section class="step-view" id="estimateStep" aria-label="住宿費用試算">
+        <div class="calculator-grid">
         <form class="panel form-panel" id="calculatorForm" novalidate>
           <section class="section" aria-labelledby="roomHeading">
             <h2 class="section-heading" id="roomHeading">
@@ -1033,13 +1402,208 @@
               住宿 7 晚以上享 95 折，14 晚以上享 9 折。超過 15:00 退宿時，再加收單晚房價的 50%。
             </p>
 
-            <button class="copy-button" id="copyQuote" type="button">
-              <span aria-hidden="true">▣</span>
-              <span id="copyButtonText">複製試算結果</span>
+            <button class="primary-button" id="startReservation" type="button">
+              <span>下一步・開始填寫預約</span>
+              <span class="button-arrow" aria-hidden="true">→</span>
             </button>
           </div>
         </aside>
-      </div>
+        </div>
+      </section>
+
+      <section
+        class="step-view reservation-step"
+        id="reservationStep"
+        aria-labelledby="reservationHeading"
+        hidden
+      >
+        <div class="panel reservation-panel">
+          <div class="reservation-hero">
+            <div>
+              <p class="reservation-eyebrow">STEP 2・RESERVATION</p>
+              <h2 class="reservation-title" id="reservationHeading">填寫住宿預約資料</h2>
+              <p class="reservation-intro">
+                試算內容已經自動帶入。填完後會開啟貓家日子 LINE 官方帳號，請在 LINE
+                裡確認文字並按下送出；送出不代表預約成立，仍需等待房況確認。
+              </p>
+            </div>
+            <button class="secondary-button" id="backToEstimate" type="button">
+              ← 返回修改試算
+            </button>
+          </div>
+
+          <form class="reservation-form" id="reservationForm" novalidate>
+            <section class="reservation-section" aria-labelledby="bookingSummaryHeading">
+              <h3 class="reservation-section-title" id="bookingSummaryHeading">本次試算內容</h3>
+              <dl class="booking-summary">
+                <div>
+                  <dt>房型</dt>
+                  <dd id="reservationRoom">—</dd>
+                </div>
+                <div>
+                  <dt>住宿日期</dt>
+                  <dd id="reservationDates">—</dd>
+                </div>
+                <div>
+                  <dt>貓咪數量</dt>
+                  <dd id="reservationCats">—</dd>
+                </div>
+                <div>
+                  <dt>預估總額</dt>
+                  <dd id="reservationTotal">—</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="reservation-section" aria-labelledby="scheduleHeading">
+              <h3 class="reservation-section-title" id="scheduleHeading">預計抵達時間</h3>
+              <p class="reservation-section-note">方便安排接待；實際時段仍以貓家日子回覆為準。</p>
+              <div class="form-grid">
+                <label class="field-group">
+                  <span class="input-label">預計入住時間<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="arrivalTime"
+                    name="arrivalTime"
+                    type="time"
+                    value="15:00"
+                    required
+                  />
+                </label>
+                <label class="field-group">
+                  <span class="input-label">預計退宿時間<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="departureTime"
+                    name="departureTime"
+                    type="time"
+                    value="15:00"
+                    required
+                  />
+                  <span class="field-help" id="departureTimeHelp">
+                    需與上一步選擇的退宿區間一致。
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section class="reservation-section" aria-labelledby="ownerHeading">
+              <h3 class="reservation-section-title" id="ownerHeading">飼主與緊急聯絡資料</h3>
+              <div class="form-grid">
+                <label class="field-group">
+                  <span class="input-label">飼主姓名<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="ownerName"
+                    name="ownerName"
+                    type="text"
+                    autocomplete="name"
+                    maxlength="50"
+                    required
+                  />
+                </label>
+                <label class="field-group">
+                  <span class="input-label">聯絡電話<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="ownerPhone"
+                    name="ownerPhone"
+                    type="tel"
+                    inputmode="tel"
+                    autocomplete="tel"
+                    pattern="[-0-9+() ]{8,20}"
+                    maxlength="20"
+                    placeholder="例如：0912-345-678"
+                    required
+                  />
+                </label>
+                <label class="field-group">
+                  <span class="input-label">緊急聯絡人姓名<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="emergencyName"
+                    name="emergencyName"
+                    type="text"
+                    maxlength="50"
+                    required
+                  />
+                </label>
+                <label class="field-group">
+                  <span class="input-label">緊急聯絡人電話<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="emergencyPhone"
+                    name="emergencyPhone"
+                    type="tel"
+                    inputmode="tel"
+                    pattern="[-0-9+() ]{8,20}"
+                    maxlength="20"
+                    required
+                  />
+                </label>
+                <label class="field-group full-width">
+                  <span class="input-label">緊急聯絡人關係</span>
+                  <input
+                    class="text-input"
+                    id="emergencyRelation"
+                    name="emergencyRelation"
+                    type="text"
+                    maxlength="30"
+                    placeholder="例如：伴侶、家人、朋友"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section class="reservation-section" aria-labelledby="catsFormHeading">
+              <h3 class="reservation-section-title" id="catsFormHeading">入住貓咪資料</h3>
+              <p class="reservation-section-note">
+                系統會依試算的貓咪數量產生欄位；健康與特殊需求若沒有，請填「無」。
+              </p>
+              <div class="cat-forms" id="catForms"></div>
+            </section>
+
+            <section class="reservation-section" aria-labelledby="additionalHeading">
+              <h3 class="reservation-section-title" id="additionalHeading">其他補充</h3>
+              <label class="field-group full-width">
+                <span class="input-label">其他希望貓家日子先知道的事情</span>
+                <textarea
+                  class="textarea-input"
+                  id="additionalNotes"
+                  name="additionalNotes"
+                  maxlength="300"
+                  placeholder="例如：接送安排、同住需求或其他問題"
+                ></textarea>
+              </label>
+            </section>
+
+            <section class="reservation-section" aria-label="確認並傳送">
+              <label class="confirmation-box">
+                <input id="reservationConsent" name="reservationConsent" type="checkbox" required />
+                <span>
+                  我已確認上述資料，並了解送出後仍需由貓家日子確認房況、入住安排與最終金額，才算完成預約。
+                </span>
+              </label>
+
+              <div class="reservation-actions">
+                <button class="primary-button line-button" id="openLine" type="submit">
+                  <span>帶入 LINE，確認後送出</span>
+                  <span class="button-arrow" aria-hidden="true">→</span>
+                </button>
+                <p class="privacy-note">
+                  填寫內容不會儲存在這個網頁；按下按鈕後，資料只會整理成文字並帶入 LINE。
+                </p>
+                <p class="line-fallback">
+                  LINE 沒有自動開啟？可直接前往
+                  <a href="https://lin.ee/6aj88FK" target="_blank" rel="noopener">貓家日子官方帳號</a>
+                  ，預約文字也會嘗試備份到剪貼簿。
+                </p>
+                <p class="reservation-status" id="reservationStatus" role="alert" aria-live="polite"></p>
+              </div>
+            </section>
+          </form>
+        </div>
+      </section>
 
       <p class="footer-note">
         試算結果僅供參考，不代表預約成立；實際房況、入住安排與金額，以貓家日子回覆確認為準。
@@ -1056,7 +1620,8 @@
           family: { name: "探險家庭房", baseRate: 1300, maxCats: 6 },
         });
 
-        const APP_VERSION = "客用試算頁面";
+        const APP_VERSION = "客用試算與預約頁面";
+        const LINE_OFFICIAL_ID = "@235lzmqu";
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
         const LONG_STAY_TIERS = Object.freeze([
@@ -1073,8 +1638,17 @@
         const checkOutInput = document.getElementById("checkOut");
         const catLimitNote = document.getElementById("catLimitNote");
         const dateError = document.getElementById("dateError");
-        const copyButton = document.getElementById("copyQuote");
-        const copyButtonText = document.getElementById("copyButtonText");
+        const estimateStep = document.getElementById("estimateStep");
+        const reservationStep = document.getElementById("reservationStep");
+        const estimateProgress = document.getElementById("estimateProgress");
+        const reservationProgress = document.getElementById("reservationProgress");
+        const startReservationButton = document.getElementById("startReservation");
+        const backToEstimateButton = document.getElementById("backToEstimate");
+        const reservationForm = document.getElementById("reservationForm");
+        const catForms = document.getElementById("catForms");
+        const departureTimeInput = document.getElementById("departureTime");
+        const departureTimeHelp = document.getElementById("departureTimeHelp");
+        const reservationStatus = document.getElementById("reservationStatus");
 
         const output = {
           totalAmount: document.getElementById("totalAmount"),
@@ -1092,10 +1666,14 @@
           daycareFee: document.getElementById("daycareFee"),
           formulaNote: document.getElementById("formulaNote"),
           versionTag: document.getElementById("versionTag"),
+          reservationRoom: document.getElementById("reservationRoom"),
+          reservationDates: document.getElementById("reservationDates"),
+          reservationCats: document.getElementById("reservationCats"),
+          reservationTotal: document.getElementById("reservationTotal"),
         };
 
         let currentQuote = null;
-        let copyResetTimer = null;
+        let renderedCatCount = 0;
 
         function toLocalISO(date) {
           const year = date.getFullYear();
@@ -1229,7 +1807,7 @@
             ? "單晚房價 × 50%"
             : "15:00（含）前退宿";
           output.daycareFee.textContent = "NT$0";
-          copyButton.disabled = true;
+          startReservationButton.disabled = true;
           setDateError(message);
         }
 
@@ -1277,7 +1855,7 @@
               )} 安親費。`
             : `住宿費 ${formatMoney(quote.staySubtotal)}${discountText}。`;
 
-          copyButton.disabled = false;
+          startReservationButton.disabled = false;
           setDateError();
         }
 
@@ -1310,10 +1888,168 @@
           updateCalculator();
         }
 
-        function createQuoteText(quote) {
+        function renderReservationSummary(quote) {
+          output.reservationRoom.textContent = quote.room.name;
+          output.reservationDates.textContent = `${formatDateForQuote(
+            quote.checkIn,
+          )}–${formatDateForQuote(quote.checkOut)}・${quote.nights} 晚`;
+          output.reservationCats.textContent = `${quote.cats} 隻`;
+          output.reservationTotal.textContent = formatMoney(quote.total);
+
+          if (quote.isLate) {
+            departureTimeInput.min = "15:01";
+            departureTimeInput.max = "23:59";
+            departureTimeHelp.textContent = "上一步選擇超過 15:00，請填寫 15:01 之後的時間。";
+            if (!departureTimeInput.value || departureTimeInput.value <= "15:00") {
+              departureTimeInput.value = "16:00";
+            }
+          } else {
+            departureTimeInput.min = "00:00";
+            departureTimeInput.max = "15:00";
+            departureTimeHelp.textContent = "上一步選擇 15:00（含）以前，最晚可填 15:00。";
+            if (!departureTimeInput.value || departureTimeInput.value > "15:00") {
+              departureTimeInput.value = "15:00";
+            }
+          }
+        }
+
+        function createCatFormMarkup(index) {
+          return `
+            <article class="cat-profile" aria-labelledby="cat${index}Heading">
+              <h4 class="cat-profile-heading" id="cat${index}Heading">第 ${index} 隻貓咪</h4>
+              <div class="form-grid">
+                <label class="field-group">
+                  <span class="input-label">貓咪姓名<span class="required-mark">＊</span></span>
+                  <input class="text-input" name="cat${index}Name" type="text" maxlength="40" required />
+                </label>
+                <label class="field-group">
+                  <span class="input-label">性別<span class="required-mark">＊</span></span>
+                  <select class="select-input" name="cat${index}Sex" required>
+                    <option value="">請選擇</option>
+                    <option value="公">公</option>
+                    <option value="母">母</option>
+                    <option value="不確定">不確定</option>
+                  </select>
+                </label>
+                <label class="field-group">
+                  <span class="input-label">年齡<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    name="cat${index}Age"
+                    type="number"
+                    inputmode="decimal"
+                    min="0"
+                    max="30"
+                    step="0.1"
+                    placeholder="例如：3"
+                    required
+                  />
+                  <span class="field-help">未滿一歲可填 0.5 等小數。</span>
+                </label>
+                <label class="field-group">
+                  <span class="input-label">是否結紮<span class="required-mark">＊</span></span>
+                  <select class="select-input" name="cat${index}Neutered" required>
+                    <option value="">請選擇</option>
+                    <option value="已結紮">已結紮</option>
+                    <option value="未結紮">未結紮</option>
+                  </select>
+                </label>
+                <label class="field-group full-width">
+                  <span class="input-label">貓砂種類<span class="required-mark">＊</span></span>
+                  <select class="select-input" name="cat${index}Litter" required>
+                    <option value="">請選擇</option>
+                    <option value="礦砂">礦砂</option>
+                    <option value="豆腐砂">豆腐砂</option>
+                    <option value="木屑砂">木屑砂</option>
+                    <option value="水晶砂">水晶砂</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </label>
+                <label class="field-group full-width">
+                  <span class="input-label">飲食習慣與餵食方式<span class="required-mark">＊</span></span>
+                  <textarea
+                    class="textarea-input"
+                    name="cat${index}Diet"
+                    maxlength="220"
+                    placeholder="例如：早晚各一餐；乾糧每餐 30g，晚餐加半罐濕食"
+                    required
+                  ></textarea>
+                </label>
+                <label class="field-group full-width">
+                  <span class="input-label">健康狀況、過敏或慢性病<span class="required-mark">＊</span></span>
+                  <textarea
+                    class="textarea-input"
+                    name="cat${index}Health"
+                    maxlength="220"
+                    placeholder="若無請填「無」"
+                    required
+                  ></textarea>
+                </label>
+                <label class="field-group full-width">
+                  <span class="input-label">特殊需求與照護提醒<span class="required-mark">＊</span></span>
+                  <textarea
+                    class="textarea-input"
+                    name="cat${index}Special"
+                    maxlength="220"
+                    placeholder="例如：餵藥時間、怕生、可能攻擊或其他照護事項；若無請填「無」"
+                    required
+                  ></textarea>
+                </label>
+              </div>
+            </article>
+          `;
+        }
+
+        function renderCatForms(count) {
+          if (renderedCatCount === count && catForms.children.length === count) return;
+
+          const previousValues = new Map();
+          catForms.querySelectorAll("input, select, textarea").forEach((field) => {
+            previousValues.set(field.name, field.value);
+          });
+
+          catForms.innerHTML = Array.from({ length: count }, (_, index) =>
+            createCatFormMarkup(index + 1),
+          ).join("");
+          renderedCatCount = count;
+
+          catForms.querySelectorAll("input, select, textarea").forEach((field) => {
+            if (previousValues.has(field.name)) field.value = previousValues.get(field.name);
+          });
+        }
+
+        function showReservationStep() {
+          if (!currentQuote) return;
+          renderReservationSummary(currentQuote);
+          renderCatForms(currentQuote.cats);
+          estimateStep.hidden = true;
+          reservationStep.hidden = false;
+          estimateProgress.classList.remove("is-current");
+          estimateProgress.classList.add("is-complete");
+          reservationProgress.classList.add("is-current");
+          reservationStatus.textContent = "";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function showEstimateStep() {
+          reservationStep.hidden = true;
+          estimateStep.hidden = false;
+          reservationProgress.classList.remove("is-current");
+          estimateProgress.classList.remove("is-complete");
+          estimateProgress.classList.add("is-current");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function getReservationValue(formData, name, fallback = "未填") {
+          const value = String(formData.get(name) || "").trim();
+          return value || fallback;
+        }
+
+        function createReservationText(quote) {
+          const formData = new FormData(reservationForm);
           const priceLines = [
             `單晚房價：${formatMoney(quote.nightlyRate)}`,
-            `住宿費：${formatMoney(quote.staySubtotal)}`,
+            `住宿原價：${formatMoney(quote.staySubtotal)}`,
           ];
 
           if (quote.discountAmount) {
@@ -1324,23 +2060,61 @@
           }
 
           const lines = [
-            "貓家日子｜住宿費用試算結果",
+            "貓家日子｜住宿預約資料",
             "",
+            "【住宿試算】",
             `房型：${quote.room.name}`,
             `貓咪數量：${quote.cats} 隻`,
             `住宿日期：${formatDateForQuote(quote.checkIn)}–${formatDateForQuote(
               quote.checkOut,
             )}（共 ${quote.nights} 晚）`,
-            `退宿時間：${quote.isLate ? "超過 15:00" : "15:00（含）以前"}`,
-            "",
+            `預計入住時間：${getReservationValue(formData, "arrivalTime")}`,
+            `預計退宿時間：${getReservationValue(formData, "departureTime")}（${
+              quote.isLate ? "超過 15:00" : "15:00（含）以前"
+            }）`,
             ...priceLines,
             `超時安親費：${formatMoney(quote.daycareFee)}`,
-            `合計：${formatMoney(quote.total)}`,
+            `預估合計：${formatMoney(quote.total)}`,
             "",
-            "＊此為試算結果，不代表預約成立；實際房況與金額以貓家日子回覆確認為準。",
+            "【飼主資料】",
+            `飼主姓名：${getReservationValue(formData, "ownerName")}`,
+            `聯絡電話：${getReservationValue(formData, "ownerPhone")}`,
+            `緊急聯絡人：${getReservationValue(formData, "emergencyName")}`,
+            `緊急聯絡電話：${getReservationValue(formData, "emergencyPhone")}`,
+            `與飼主關係：${getReservationValue(formData, "emergencyRelation")}`,
           ];
 
+          for (let index = 1; index <= quote.cats; index += 1) {
+            lines.push(
+              "",
+              `【第 ${index} 隻貓咪】`,
+              `姓名：${getReservationValue(formData, `cat${index}Name`)}`,
+              `性別：${getReservationValue(formData, `cat${index}Sex`)}`,
+              `年齡：${getReservationValue(formData, `cat${index}Age`)} 歲`,
+              `結紮：${getReservationValue(formData, `cat${index}Neutered`)}`,
+              `貓砂：${getReservationValue(formData, `cat${index}Litter`)}`,
+              `飲食與餵食：${getReservationValue(formData, `cat${index}Diet`)}`,
+              `健康狀況：${getReservationValue(formData, `cat${index}Health`)}`,
+              `特殊需求：${getReservationValue(formData, `cat${index}Special`)}`,
+            );
+          }
+
+          lines.push(
+            "",
+            "【其他補充】",
+            getReservationValue(formData, "additionalNotes", "無"),
+            "",
+            "我想詢問以上日期是否有房，謝謝。",
+            "＊此為預約需求，不代表預約成立；房況、安排與最終金額以貓家日子回覆為準。",
+          );
+
           return lines.join("\n");
+        }
+
+        function buildLineMessageUrl(message) {
+          return `https://line.me/R/oaMessage/${encodeURIComponent(LINE_OFFICIAL_ID)}/?${encodeURIComponent(
+            message,
+          )}`;
         }
 
         async function copyText(text) {
@@ -1359,16 +2133,6 @@
           const didCopy = document.execCommand("copy");
           textArea.remove();
           if (!didCopy) throw new Error("Copy command failed");
-        }
-
-        function showCopyState(message, successful) {
-          window.clearTimeout(copyResetTimer);
-          copyButtonText.textContent = message;
-          copyButton.classList.toggle("is-copied", successful);
-          copyResetTimer = window.setTimeout(() => {
-            copyButtonText.textContent = "複製試算結果";
-            copyButton.classList.remove("is-copied");
-          }, 1800);
         }
 
         function initializeDates() {
@@ -1405,14 +2169,35 @@
           setCatCount(catCountInput.value);
         });
 
-        copyButton.addEventListener("click", async () => {
-          if (!currentQuote) return;
-          try {
-            await copyText(createQuoteText(currentQuote));
-            showCopyState("已複製！", true);
-          } catch (error) {
-            showCopyState("複製失敗，請再試一次", false);
+        startReservationButton.addEventListener("click", showReservationStep);
+        backToEstimateButton.addEventListener("click", showEstimateStep);
+
+        reservationForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          reservationStatus.textContent = "";
+
+          if (!currentQuote) {
+            reservationStatus.textContent = "試算資料已失效，請返回上一步重新確認。";
+            return;
           }
+
+          if (!reservationForm.checkValidity()) {
+            reservationStatus.textContent = "請完成所有標示＊的必填欄位。";
+            reservationForm.reportValidity();
+            const firstInvalidField = reservationForm.querySelector(":invalid");
+            firstInvalidField?.focus();
+            return;
+          }
+
+          const reservationText = createReservationText(currentQuote);
+          try {
+            await copyText(reservationText);
+          } catch (error) {
+            // LINE 仍會帶入完整文字；剪貼簿僅作為相容性備援。
+          }
+
+          reservationStatus.textContent = "正在開啟 LINE，請確認資料後按下送出。";
+          window.location.assign(buildLineMessageUrl(reservationText));
         });
 
         initializeDates();
@@ -1422,8 +2207,11 @@
         // 保留純計算函式，方便日後自動測試與調整房價。
         window.CatStayCalculator = Object.freeze({
           calculateStay,
+          createReservationText,
           daysBetween,
           getLongStayTier,
+          buildLineMessageUrl,
+          renderCatForms,
           roomTypes: ROOM_TYPES,
         });
       })();
