@@ -9,17 +9,17 @@
 3. 填寫飼主、緊急聯絡人，以及每隻貓咪的飲食、健康與照護資料。
 4. 點選「送出預約資料」。
 5. 完整資料寫入 Google Sheets，頁面留在原處並顯示預約編號。
-6. Apps Script 另外透過 LINE Messaging API，向指定的店家人員或通知群組推播一則「飼主姓名已預約」。
+6. Apps Script 另外寄送一封新預約 Email 給指定的店家人員。
 
-LINE 通知不包含電話、貓咪資料或其他個人資訊；完整內容只保留在預約表。
+Email 會包含預約編號、飼主、聯絡電話、住宿日期、房型、貓咪數量、預估金額及預約表連結；完整照護資料只保留在預約表。
 
 ## 資料結構
 
 指定的 Google Spreadsheet ID：`1EM9yFt-zHo84abbOVvr10vb2GNm5XR1X2xBLMejlMoE`
 
-- `住宿預約`：一筆預約一列，包含飼主、日期、房型、金額、狀態與 LINE 通知狀態。
+- `住宿預約`：一筆預約一列，包含飼主、日期、房型、金額、狀態與 Email 通知狀態。
 - `貓咪資料`：每隻貓一列，以預約編號連回住宿預約。
-- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表並發送簡短 LINE 通知。
+- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表並寄送新預約 Email。
 
 ## 已包含的計價規則
 
@@ -41,12 +41,12 @@ window.CAT_STAY_CONFIG = Object.freeze({
 });
 ```
 
-LINE Channel Access Token 與通知對象 ID 必須存放在 Apps Script 的「指令碼屬性」，不可寫入 GitHub 或前端程式。
+Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。
 
 ## 檔案
 
 - `index.html`：試算、表單與 Google Sheets 提交流程
 - `config.js`：Apps Script Web App URL
 - `assets/days-with-cats-logo.png`：品牌 Logo
-- `google-apps-script/Code.gs`：Google Sheets 收件與 LINE 店家通知後端
+- `google-apps-script/Code.gs`：Google Sheets 收件與 Email 店家通知後端
 - `google-apps-script/appsscript.json`：Apps Script 專案設定
