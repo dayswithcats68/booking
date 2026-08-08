@@ -12,6 +12,13 @@ const EMAIL_CONFIG = Object.freeze({
   spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${CONFIG.spreadsheetId}/edit`,
 });
 
+const CALENDAR_CONFIG = Object.freeze({
+  calendarIdProperty: "BOOKING_CALENDAR_ID",
+  defaultCalendarId: "primary",
+  statusColumn: 36,
+  eventIdColumn: 37,
+});
+
 const ROOM_TYPES = Object.freeze({
   small: {
     name: "貓家小貓房",
@@ -60,6 +67,7 @@ const MEAL_HEADERS = Object.freeze([
 ]);
 const ROOM_COUNT_COLUMN = 35;
 const ROOM_COUNT_HEADER = "房間數量";
+const CALENDAR_HEADERS = Object.freeze(["Google Calendar 狀態", "Google Calendar 行程 ID"]);
 
 function doGet() {
   const properties = PropertiesService.getScriptProperties();
@@ -71,6 +79,17 @@ function doGet() {
     ),
     timestamp: new Date().toISOString(),
   });
+}
+
+function authorizeCalendar() {
+  Calendar.Events.list(getBookingCalendarId_(), {
+    maxResults: 1,
+    showDeleted: false,
+  });
+  return {
+    authorized: true,
+    calendarId: getBookingCalendarId_(),
+  };
 }
 
 function doPost(event) {
@@ -129,6 +148,7 @@ function saveBooking_(payload) {
   const departureTime = requiredTime_(booking.departureTime, "退宿時間");
   const quote = calculateQuote_(booking);
   validateBookingTimes_(arrivalTime, departureTime, quote.isLate);
+  const additionalNotes = optionalText_(payload.additionalNotes, 300);
 
   if (cats.length !== quote.cats) {
     throw new Error("貓咪資料數量與預約數量不一致");
@@ -140,18 +160,47 @@ function saveBooking_(payload) {
   const catSheet = spreadsheet.getSheetByName(CONFIG.catSheet);
   if (!bookingSheet || !catSheet) throw new Error("找不到預約資料工作表");
 
+  bookingSheet.getRange(1, 27, 1, MEAL_HEADERS.length).setValues([MEAL_HEADERS]);
+  bookingSheet.getRange(1, ROOM_COUNT_COLUMN).setValue(ROOM_COUNT_HEADER);
+  bookingSheet
+    .getRange(1, CALENDAR_CONFIG.statusColumn, 1, CALENDAR_HEADERS.length)
+    .setValues([CALENDAR_HEADERS]);
+
+  const bookingDetails = {
+    reservationId,
+    owner: {
+      name: ownerName,
+      phone: ownerPhone,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+    },
+    arrivalTime,
+    departureTime,
+    quote,
+    cats: normalizedCats,
+    additionalNotes,
+  };
+
   const existingRow = findReservationRow_(bookingSheet, reservationId);
   if (existingRow) {
-    return { reservationId, duplicate: true };
+    const calendarResult = ensureCalendarEventSafely_(
+      bookingSheet,
+      existingRow,
+      bookingDetails
+    );
+    return {
+      reservationId,
+      duplicate: true,
+      calendarStatus: calendarResult.status,
+      calendarEventId: calendarResult.eventId,
+    };
   }
 
   const submittedAt = new Date();
   const emailStatus = ALLOWED_EMAIL_STATUSES.includes(payload.emailStatus)
     ? payload.emailStatus
     : "準備寄送";
-  const additionalNotes = optionalText_(payload.additionalNotes, 300);
-  bookingSheet.getRange(1, 27, 1, MEAL_HEADERS.length).setValues([MEAL_HEADERS]);
-  bookingSheet.getRange(1, ROOM_COUNT_COLUMN).setValue(ROOM_COUNT_HEADER);
   const legacyCanned = quote.mealQuantitySource === "legacy" && quote.mealPlanKey === "canned";
   const legacyDailyPlan = quote.mealPlan.quantityType === "days";
   const bookingRow = [
@@ -238,24 +287,152 @@ function saveBooking_(payload) {
   catSheet.getRange(firstCatRow, 1, catRows.length, catRows[0].length).setWrap(true);
 
   const notificationStatus = sendEmailNotificationSafely_({
-    reservationId,
+    ...bookingDetails,
     submittedAt,
-    owner: {
-      name: ownerName,
-      phone: ownerPhone,
-      emergencyName,
-      emergencyPhone,
-      emergencyRelation,
-    },
-    arrivalTime,
-    departureTime,
-    quote,
-    cats: normalizedCats,
-    additionalNotes,
   });
   bookingSheet.getRange(bookingRowNumber, 25).setValue(notificationStatus);
 
-  return { reservationId, duplicate: false, notificationStatus };
+  const calendarResult = ensureCalendarEventSafely_(
+    bookingSheet,
+    bookingRowNumber,
+    bookingDetails
+  );
+
+  return {
+    reservationId,
+    duplicate: false,
+    notificationStatus,
+    calendarStatus: calendarResult.status,
+    calendarEventId: calendarResult.eventId,
+  };
+}
+
+function ensureCalendarEventSafely_(bookingSheet, bookingRowNumber, booking) {
+  const statusRange = bookingSheet.getRange(
+    bookingRowNumber,
+    CALENDAR_CONFIG.statusColumn
+  );
+  const eventIdRange = bookingSheet.getRange(
+    bookingRowNumber,
+    CALENDAR_CONFIG.eventIdColumn
+  );
+
+  try {
+    const storedEventId = String(eventIdRange.getDisplayValue() || "").trim();
+    const eventId = storedEventId || createCalendarEventId_(booking.reservationId);
+    let event = findCalendarEventByReservationId_(booking.reservationId);
+
+    if (!event) {
+      try {
+        event = createCalendarEvent_(eventId, booking);
+      } catch (error) {
+        event = findCalendarEventByReservationId_(booking.reservationId);
+        if (!event) throw error;
+      }
+    }
+
+    statusRange.setValue("已建立");
+    eventIdRange.setValue(event.id);
+    return { status: "已建立", eventId: event.id };
+  } catch (error) {
+    console.error(error);
+    try {
+      statusRange.setValue("建立失敗");
+    } catch (statusError) {
+      console.error(statusError);
+    }
+    return { status: "建立失敗", eventId: "" };
+  }
+}
+
+function getBookingCalendarId_() {
+  const properties = PropertiesService.getScriptProperties();
+  return String(
+    properties.getProperty(CALENDAR_CONFIG.calendarIdProperty) || ""
+  ).trim() || CALENDAR_CONFIG.defaultCalendarId;
+}
+
+function createCalendarEventId_(reservationId) {
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    reservationId,
+    Utilities.Charset.UTF_8
+  );
+  return `c${digest
+    .map((byte) => (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+function findCalendarEventByReservationId_(reservationId) {
+  const result = Calendar.Events.list(getBookingCalendarId_(), {
+    maxResults: 1,
+    privateExtendedProperty: `reservationId=${reservationId}`,
+    showDeleted: false,
+  });
+  return result.items && result.items.length ? result.items[0] : null;
+}
+
+function createCalendarEvent_(eventId, booking) {
+  return Calendar.Events.insert(
+    {
+      id: eventId,
+      summary: createCalendarEventTitle_(booking),
+      description: createCalendarEventDescription_(booking),
+      start: {
+        dateTime: `${booking.quote.checkIn}T${booking.arrivalTime}:00+08:00`,
+        timeZone: CONFIG.timezone,
+      },
+      end: {
+        dateTime: `${booking.quote.checkOut}T${booking.departureTime}:00+08:00`,
+        timeZone: CONFIG.timezone,
+      },
+      transparency: "opaque",
+      reminders: { useDefault: true },
+      extendedProperties: {
+        private: { reservationId: booking.reservationId },
+      },
+    },
+    getBookingCalendarId_(),
+    { sendUpdates: "none" }
+  );
+}
+
+function createCalendarEventTitle_(booking) {
+  return [
+    "【待確認】貓家日子住宿",
+    booking.owner.name,
+    `${booking.quote.cats} 隻`,
+    `${booking.quote.room.name} ${booking.quote.roomCount} 間`,
+  ].join("｜");
+}
+
+function createCalendarEventDescription_(booking) {
+  const quote = booking.quote;
+  const mealLine = quote.mealPlanKey === "none"
+    ? "不加購"
+    : quote.mealPlanKey === "canned"
+      ? `${quote.mealPlan.name}｜整筆預約共 ${quote.mealQuantity} 罐｜每罐 NT$${formatInteger_(quote.mealUnitRatePerCat)}`
+      : `${quote.mealPlan.name}｜每隻 ${quote.mealQuantity} 天｜每隻每日 NT$${formatInteger_(quote.mealUnitRatePerCat)}`;
+
+  return [
+    `預約編號：${booking.reservationId}`,
+    "預約狀態：待訂金付款與店家確認",
+    `入住：${quote.checkIn} ${booking.arrivalTime}`,
+    `退宿：${quote.checkOut} ${booking.departureTime}`,
+    `房型：${quote.room.name}｜${quote.roomCount} 間`,
+    `貓咪數量：${quote.cats} 隻`,
+    `貓咪姓名：${booking.cats.map((cat) => cat.name).join("、")}`,
+    `伙食加購：${mealLine}`,
+    `預估總額：NT$${formatInteger_(quote.total)}`,
+    "",
+    `飼主：${booking.owner.name}`,
+    `聯絡電話：${booking.owner.phone}`,
+    `緊急聯絡人：${booking.owner.emergencyName}（${booking.owner.emergencyRelation || "未填關係"}）`,
+    `緊急聯絡電話：${booking.owner.emergencyPhone}`,
+    "",
+    `其他補充：${booking.additionalNotes || "無"}`,
+    `查看預約資料表：${EMAIL_CONFIG.spreadsheetUrl}`,
+  ].join("\n");
 }
 
 function sendEmailNotificationSafely_(booking) {

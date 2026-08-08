@@ -9,7 +9,7 @@
 3. 填寫飼主、緊急聯絡人，以及每隻貓咪的飲食、健康與照護資料。
 4. 點選「送出預約資料」。
 5. 完整資料寫入 Google Sheets，頁面留在原處並顯示預約編號、訂金匯款說明、可複製的文字帳戶資料與住宿須知圖片。
-6. Apps Script 另外寄送一封新預約 Email 給指定的店家人員。
+6. Apps Script 另外寄送一封新預約 Email 給指定的店家人員，並在貓家日子的 Google Calendar 建立一筆「待確認」住宿行程。
 
 Email 會直接包含完整預約明細，包括預約編號與時段、飼主與緊急聯絡資料、房型與伙食方案、完整費用明細、每隻貓咪的飲食／健康／照護資料、其他補充及預約表連結。
 
@@ -17,9 +17,9 @@ Email 會直接包含完整預約明細，包括預約編號與時段、飼主�
 
 指定的 Google Spreadsheet ID：`1EM9yFt-zHo84abbOVvr10vb2GNm5XR1X2xBLMejlMoE`
 
-- `住宿預約`：一筆預約一列，包含飼主、日期、房型、房間數量、伙食方案、加購數量、金額、狀態與 Email 通知狀態。新版後端會保留第 27–31 欄的舊版伙食欄位，以第 32–34 欄記錄加購數量、計價單位與單位價格，並以第 35 欄記錄房間數量。
+- `住宿預約`：一筆預約一列，包含飼主、日期、房型、房間數量、伙食方案、加購數量、金額、狀態、Email 通知狀態與 Google Calendar 建立結果。新版後端會保留第 27–31 欄的舊版伙食欄位，以第 32–34 欄記錄加購數量、計價單位與單位價格，第 35 欄記錄房間數量，第 36–37 欄記錄 Calendar 狀態與行程 ID。
 - `貓咪資料`：每隻貓一列，以預約編號連回住宿預約。
-- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表並寄送新預約 Email。
+- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表、寄送新預約 Email，並以預約編號防止重複建立 Calendar 行程。
 
 ## 已包含的計價規則
 
@@ -46,7 +46,7 @@ window.CAT_STAY_CONFIG = Object.freeze({
 });
 ```
 
-Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。
+Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。Calendar 預設使用 Apps Script 執行帳號的主要日曆；若日後要改用該帳號擁有的次要日曆，可在 `BOOKING_CALENDAR_ID` 指令碼屬性填入該日曆 ID。Calendar 僅要求 `calendar.events.owned`，不會取得日曆分享設定的管理權限。
 
 ## 檔案
 
