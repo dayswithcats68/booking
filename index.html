@@ -1933,7 +1933,8 @@
             <div class="summary-divider"></div>
 
             <p class="formula-note" id="formulaNote">
-              住宿 7 晚以上享 95 折，14 晚以上享 9 折。超過 15:00 退宿時，再加收單晚房價的 50%。
+              住宿 7 晚以上享 95 折，14 晚以上享 9 折；滿 30 晚視為一個月，住宿費享 7 折。超過 15:00
+              退宿時，再加收單晚房價的 50%。
             </p>
 
             <button class="primary-button" id="startReservation" type="button">
@@ -2071,18 +2072,17 @@
                   />
                 </label>
                 <label class="field-group">
-                  <span class="input-label">緊急聯絡人姓名<span class="required-mark">＊</span></span>
+                  <span class="input-label">緊急聯絡人姓名（選填）</span>
                   <input
                     class="text-input"
                     id="emergencyName"
                     name="emergencyName"
                     type="text"
                     maxlength="50"
-                    required
                   />
                 </label>
                 <label class="field-group">
-                  <span class="input-label">緊急聯絡人電話<span class="required-mark">＊</span></span>
+                  <span class="input-label">緊急聯絡人電話（選填）</span>
                   <input
                     class="text-input"
                     id="emergencyPhone"
@@ -2091,7 +2091,6 @@
                     inputmode="tel"
                     pattern="[-0-9+() ]{8,20}"
                     maxlength="20"
-                    required
                   />
                 </label>
                 <label class="field-group full-width">
@@ -2289,7 +2288,13 @@
         const STANDARD_CHECKOUT_TIME = "15:00";
         const LATEST_DEPARTURE_TIME = "20:30";
         const LONG_STAY_TIERS = Object.freeze([
-          { minimumNights: 14, multiplier: 0.9, name: "9 折", description: "14 晚以上・9 折" },
+          {
+            minimumNights: 30,
+            multiplier: 0.7,
+            name: "7 折",
+            description: "30 晚以上（視為一個月）・7 折",
+          },
+          { minimumNights: 14, multiplier: 0.9, name: "9 折", description: "14–29 晚・9 折" },
           { minimumNights: 7, multiplier: 0.95, name: "95 折", description: "7–13 晚・95 折" },
         ]);
         const MILLISECONDS_PER_DAY = 86_400_000;
@@ -2948,7 +2953,6 @@
                     <option value="">請選擇</option>
                     <option value="礦砂">礦砂</option>
                     <option value="豆腐砂">豆腐砂</option>
-                    <option value="木屑砂">木屑砂</option>
                     <option value="其他">其他</option>
                   </select>
                 </label>
