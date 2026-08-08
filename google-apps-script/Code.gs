@@ -426,7 +426,9 @@ function createCalendarEventDescription_(booking) {
     `貓咪數量：${quote.cats} 隻`,
     `貓咪姓名：${booking.cats.map((cat) => cat.name).join("、")}`,
     `伙食加購：${mealLine}`,
-    `預估總額：NT$${formatInteger_(quote.total)}`,
+    quote.requiresManualQuote
+      ? `長住專案：待專屬報價（未套用專案折扣參考 NT$${formatInteger_(quote.total)}）`
+      : `預估總額：NT$${formatInteger_(quote.total)}`,
     "",
     `飼主：${booking.owner.name}`,
     `聯絡電話：${booking.owner.phone}`,
@@ -469,9 +471,11 @@ function sendEmailNotificationSafely_(booking) {
 function createDetailedEmailBody_(booking) {
   const quote = booking.quote;
   const owner = booking.owner;
-  const discountLine = quote.discountAmount
-    ? `${quote.discountName}（−NT$${formatInteger_(quote.discountAmount)}）`
-    : "無折扣";
+  const discountLine = quote.requiresManualQuote
+    ? "長住專案（待專屬報價）"
+    : quote.discountAmount
+      ? `${quote.discountName}（−NT$${formatInteger_(quote.discountAmount)}）`
+      : "無折扣";
   const mealLine = quote.mealPlanKey === "none"
     ? "不加購"
     : quote.mealPlanKey === "canned"
@@ -512,10 +516,14 @@ function createDetailedEmailBody_(booking) {
     `單晚房價：NT$${formatInteger_(quote.nightlyRate)}`,
     `住宿原價：NT$${formatInteger_(quote.staySubtotal)}`,
     `長住優惠：${discountLine}`,
-    `折扣後住宿費：NT$${formatInteger_(quote.discountedStaySubtotal)}`,
+    quote.requiresManualQuote
+      ? "折扣後住宿費：待專屬報價"
+      : `折扣後住宿費：NT$${formatInteger_(quote.discountedStaySubtotal)}`,
     `超時安親費：NT$${formatInteger_(quote.daycareFee)}`,
     `伙食加購：NT$${formatInteger_(quote.mealSubtotal)}`,
-    `預估總額：NT$${formatInteger_(quote.total)}`,
+    quote.requiresManualQuote
+      ? `專案折扣前參考總額：NT$${formatInteger_(quote.total)}`
+      : `預估總額：NT$${formatInteger_(quote.total)}`,
     "",
     "【飼主與緊急聯絡】",
     `飼主姓名：${owner.name}`,
@@ -751,9 +759,10 @@ function calculateQuote_(booking) {
   const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
   const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
   const staySubtotal = nightlyRate * nights;
-  const discountMultiplier = nights >= 30 ? 0.7 : nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
-  const discountName = nights >= 30
-    ? "7 折"
+  const requiresManualQuote = nights >= 30;
+  const discountMultiplier = requiresManualQuote ? 1 : nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
+  const discountName = requiresManualQuote
+    ? "長住專案（待專屬報價）"
     : nights >= 14
       ? "9 折"
       : nights >= 7
@@ -792,6 +801,7 @@ function calculateQuote_(booking) {
     nightlyRate,
     staySubtotal,
     discountName,
+    requiresManualQuote,
     discountAmount,
     discountedStaySubtotal,
     daycareFee,
