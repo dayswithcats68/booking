@@ -323,7 +323,7 @@
 
       .room-photo--small {
         transform: scale(1.15);
-        object-position: 48% 92%;
+        object-position: 48% 100%;
       }
 
       .room-photo--adventure {
@@ -428,6 +428,11 @@
         margin-bottom: 3px;
       }
 
+      .cat-copy,
+      .room-count-copy {
+        min-width: 0;
+      }
+
       .cat-copy span,
       .room-count-copy span {
         color: var(--muted);
@@ -436,6 +441,7 @@
 
       .stepper {
         display: grid;
+        flex: 0 0 auto;
         grid-template-columns: 42px 52px 42px;
         align-items: center;
         overflow: hidden;
@@ -1551,7 +1557,7 @@
                   <input type="radio" name="room" value="small" checked />
                   <span class="choice-card-body">
                     <span class="choice-card-top">
-                      <span class="choice-card-title">貓家小貓房<small>每間最多 3 貓・最多 10 間</small></span>
+                      <span class="choice-card-title">貓家小貓房<small>每間最多 3 貓</small></span>
                       <span class="choice-check" aria-hidden="true">✓</span>
                     </span>
                     <span class="choice-card-price">
@@ -1598,7 +1604,7 @@
             <div class="room-count-row">
               <div class="room-count-copy">
                 <strong>需要預訂幾間房？</strong>
-                <span id="roomCountNote">小貓房最多可預約 10 間・每間最多 3 隻貓</span>
+                <span id="roomCountNote">每間最多 3 隻貓</span>
               </div>
               <div class="stepper" role="group" aria-label="房間數量">
                 <button type="button" id="decreaseRooms" aria-label="減少一間房">−</button>
@@ -2591,7 +2597,7 @@
           roomCountInput.readOnly = maxRooms === 1;
           roomCountNote.textContent = maxRooms === 1
             ? `此房型僅可預約 1 間・每間最多 ${room.maxCatsPerRoom} 隻貓`
-            : `此房型最多可預約 ${maxRooms} 間・每間最多 ${room.maxCatsPerRoom} 隻貓`;
+            : `每間最多 ${room.maxCatsPerRoom} 隻貓`;
           decreaseRoomsButton.disabled = state.roomCount <= 1;
           increaseRoomsButton.disabled = state.roomCount >= maxRooms;
           catCountInput.value = state.cats;
