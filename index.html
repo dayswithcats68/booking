@@ -1698,7 +1698,7 @@
                     <span class="radio-dot" aria-hidden="true"></span>
                     <span class="time-choice-copy">
                       <strong>罐頭</strong>
-                      <span>每罐 NT$30</span>
+                      <span>每罐 NT$40</span>
                     </span>
                   </span>
                 </label>
@@ -2087,7 +2087,7 @@
         const MEAL_PLANS = Object.freeze({
           none: { name: "不加購", quantityType: "none", unit: "", unitRatePerCat: 0 },
           dry: { name: "乾飼料", quantityType: "days", unit: "天", unitRatePerCat: 50 },
-          canned: { name: "罐頭", quantityType: "meals", unit: "餐", unitRatePerCat: 30 },
+          canned: { name: "罐頭", quantityType: "meals", unit: "餐", unitRatePerCat: 40 },
           combo: {
             name: "套組方案（早晚各一罐＋乾飼料）",
             quantityType: "days",
@@ -2479,7 +2479,7 @@
             ? "整段住宿總共要加購幾罐？"
             : "每隻貓要加購幾天？";
           mealQuantityHelp.textContent = isCanned
-            ? "每罐 NT$30；請填整筆預約的總罐數，不會乘上貓咪數量"
+            ? "每罐 NT$40；請填整筆預約的總罐數，不會乘上貓咪數量"
             : `${formatMoney(mealPlan.unitRatePerCat)} × 天數 × 貓咪數量（最多 ${Math.max(1, nights)} 天）`;
           mealQuantityInput.value = clampMealQuantity(
             state.mealQuantity,

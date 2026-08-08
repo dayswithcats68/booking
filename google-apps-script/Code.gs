@@ -20,7 +20,7 @@ const ROOM_TYPES = Object.freeze({
 const MEAL_PLANS = Object.freeze({
   none: { name: "不加購", quantityType: "none", unit: "", unitRatePerCat: 0 },
   dry: { name: "乾飼料", quantityType: "days", unit: "天", unitRatePerCat: 50 },
-  canned: { name: "罐頭", quantityType: "meals", unit: "餐", unitRatePerCat: 30 },
+  canned: { name: "罐頭", quantityType: "meals", unit: "餐", unitRatePerCat: 40 },
   combo: {
     name: "套組方案（早晚各一罐＋乾飼料）",
     quantityType: "days",
