@@ -273,6 +273,18 @@
         gap: 12px;
       }
 
+      .room-count-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .room-selection-note {
+        margin: -4px 2px 12px;
+        color: var(--muted);
+        font-size: 0.79rem;
+      }
+
       .choice-card,
       .time-choice {
         position: relative;
@@ -374,7 +386,7 @@
         height: 21px;
         place-items: center;
         border: 1px solid var(--line);
-        border-radius: 50%;
+        border-radius: 6px;
         background: var(--paper);
         color: transparent;
         font-size: 0.72rem;
@@ -419,7 +431,7 @@
       }
 
       .room-count-row {
-        margin-top: 12px;
+        margin-top: 0;
       }
 
       .cat-copy strong,
@@ -837,6 +849,13 @@
         cursor: wait;
       }
 
+      .submit-button.is-submitted,
+      .submit-button.is-submitted:hover {
+        background: #315f3e;
+        cursor: default;
+        transform: none;
+      }
+
       .button-arrow {
         font-size: 1.08rem;
         line-height: 1;
@@ -1153,6 +1172,7 @@
       .payment-details {
         display: grid;
         gap: 12px;
+        scroll-margin-top: 20px;
         padding: 16px;
         border: 1px solid rgba(114, 72, 51, 0.18);
         border-radius: 14px;
@@ -1549,12 +1569,13 @@
               <span class="step-number" aria-hidden="true">1</span>
               選擇想入住的房型
             </h2>
+            <p class="room-selection-note">可同時預訂兩種房型，請在下方調整各房型數量。</p>
 
             <fieldset>
-              <legend class="visually-hidden">房型</legend>
+              <legend class="visually-hidden">可複選房型</legend>
               <div class="room-options">
                 <label class="choice-card">
-                  <input type="radio" name="room" value="small" checked />
+                  <input id="smallRoomToggle" type="checkbox" value="small" checked />
                   <span class="choice-card-body">
                     <span class="choice-card-top">
                       <span class="choice-card-title">貓家小貓房<small>每間最多 3 貓</small></span>
@@ -1577,7 +1598,7 @@
                 </label>
 
                 <label class="choice-card">
-                  <input type="radio" name="room" value="family" />
+                  <input id="familyRoomToggle" type="checkbox" value="family" />
                   <span class="choice-card-body">
                     <span class="choice-card-top">
                       <span class="choice-card-title">探險家庭房<small>每間最多 6 貓・最多 1 間</small></span>
@@ -1601,27 +1622,52 @@
               </div>
             </fieldset>
 
-            <div class="room-count-row">
-              <div class="room-count-copy">
-                <strong>需要預訂幾間房？</strong>
-                <span id="roomCountNote">每間最多 3 隻貓</span>
+            <div class="room-count-list" aria-label="各房型預訂數量">
+              <div class="room-count-row">
+                <div class="room-count-copy">
+                  <strong>貓家小貓房</strong>
+                  <span>每間最多 3 隻貓</span>
+                </div>
+                <div class="stepper" role="group" aria-label="貓家小貓房數量">
+                  <button type="button" id="decreaseSmallRooms" aria-label="減少一間貓家小貓房">−</button>
+                  <input
+                    id="smallRoomCount"
+                    name="smallRoomCount"
+                    type="number"
+                    value="1"
+                    min="0"
+                    max="10"
+                    step="1"
+                    inputmode="numeric"
+                    aria-label="貓家小貓房數量"
+                  />
+                  <button type="button" id="increaseSmallRooms" aria-label="增加一間貓家小貓房">＋</button>
+                </div>
               </div>
-              <div class="stepper" role="group" aria-label="房間數量">
-                <button type="button" id="decreaseRooms" aria-label="減少一間房">−</button>
-                <input
-                  id="roomCount"
-                  name="roomCount"
-                  type="number"
-                  value="1"
-                  min="1"
-                  max="10"
-                  step="1"
-                  inputmode="numeric"
-                  aria-label="房間數量"
-                />
-                <button type="button" id="increaseRooms" aria-label="增加一間房">＋</button>
+
+              <div class="room-count-row">
+                <div class="room-count-copy">
+                  <strong>探險家庭房</strong>
+                  <span>每間最多 6 隻貓・最多 1 間</span>
+                </div>
+                <div class="stepper" role="group" aria-label="探險家庭房數量">
+                  <button type="button" id="decreaseFamilyRooms" aria-label="減少一間探險家庭房">−</button>
+                  <input
+                    id="familyRoomCount"
+                    name="familyRoomCount"
+                    type="number"
+                    value="0"
+                    min="0"
+                    max="1"
+                    step="1"
+                    inputmode="numeric"
+                    aria-label="探險家庭房數量"
+                  />
+                  <button type="button" id="increaseFamilyRooms" aria-label="增加一間探險家庭房">＋</button>
+                </div>
               </div>
             </div>
+            <p class="error-message" id="roomError" role="alert"></p>
           </section>
 
           <section class="section" aria-labelledby="catsHeading">
@@ -2055,7 +2101,12 @@
                     官方帳號（@days.cat），我們收到款項即正式為您的寶貝保留房間。<br /><br />
                     感謝您的預約，期待為您的寶貝服務！
                   </p>
-                  <section class="payment-details" aria-labelledby="paymentDetailsHeading">
+                  <section
+                    class="payment-details"
+                    id="paymentDetails"
+                    tabindex="-1"
+                    aria-labelledby="paymentDetailsHeading"
+                  >
                     <div class="payment-details-header">
                       <h5 class="payment-details-title" id="paymentDetailsHeading">匯款帳戶</h5>
                       <button class="copy-account-button" id="copyPaymentAccount" type="button">
@@ -2172,10 +2223,21 @@
         const MILLISECONDS_PER_DAY = 86_400_000;
 
         const form = document.getElementById("calculatorForm");
-        const roomCountInput = document.getElementById("roomCount");
-        const decreaseRoomsButton = document.getElementById("decreaseRooms");
-        const increaseRoomsButton = document.getElementById("increaseRooms");
-        const roomCountNote = document.getElementById("roomCountNote");
+        const roomControls = Object.freeze({
+          small: {
+            toggle: document.getElementById("smallRoomToggle"),
+            input: document.getElementById("smallRoomCount"),
+            decrease: document.getElementById("decreaseSmallRooms"),
+            increase: document.getElementById("increaseSmallRooms"),
+          },
+          family: {
+            toggle: document.getElementById("familyRoomToggle"),
+            input: document.getElementById("familyRoomCount"),
+            decrease: document.getElementById("decreaseFamilyRooms"),
+            increase: document.getElementById("increaseFamilyRooms"),
+          },
+        });
+        const roomError = document.getElementById("roomError");
         const catCountInput = document.getElementById("catCount");
         const decreaseCatsButton = document.getElementById("decreaseCats");
         const increaseCatsButton = document.getElementById("increaseCats");
@@ -2204,8 +2266,10 @@
         const reservationStatus = document.getElementById("reservationStatus");
         const submitButton = document.getElementById("submitReservation");
         const submitButtonLabel = document.getElementById("submitButtonLabel");
+        const submitButtonArrow = submitButton.querySelector(".button-arrow");
         const reservationSuccess = document.getElementById("reservationSuccess");
         const successReservationId = document.getElementById("successReservationId");
+        const paymentDetails = document.getElementById("paymentDetails");
         const copyPaymentAccountButton = document.getElementById("copyPaymentAccount");
         const paymentAccountNumber = document.getElementById("paymentAccountNumber");
         const copyPaymentFeedback = document.getElementById("copyPaymentFeedback");
@@ -2303,9 +2367,19 @@
         }
 
         function setSubmitting(isSubmitting, label = "送出預約資料") {
+          submitButton.classList.remove("is-submitted");
           submitButton.disabled = isSubmitting;
           submitButton.setAttribute("aria-busy", isSubmitting ? "true" : "false");
           submitButtonLabel.textContent = label;
+          submitButtonArrow.textContent = "→";
+        }
+
+        function setSubmitted() {
+          submitButton.classList.add("is-submitted");
+          submitButton.disabled = true;
+          submitButton.setAttribute("aria-busy", "false");
+          submitButtonLabel.textContent = "預約資料已送出";
+          submitButtonArrow.textContent = "✓";
         }
 
         function clampCats(value, maxCats) {
@@ -2314,10 +2388,63 @@
           return Math.min(maxCats, Math.max(1, parsed));
         }
 
-        function clampRooms(value, maxRooms) {
+        function clampRoomCount(value, maxRooms) {
           const parsed = Number.parseInt(value, 10);
-          if (!Number.isFinite(parsed)) return 1;
-          return Math.min(maxRooms, Math.max(1, parsed));
+          if (!Number.isFinite(parsed)) return 0;
+          return Math.min(maxRooms, Math.max(0, parsed));
+        }
+
+        function normalizeRoomCounts(roomCounts, roomKey, roomCount = 1) {
+          const source = roomCounts && typeof roomCounts === "object"
+            ? roomCounts
+            : ROOM_TYPES[roomKey]
+              ? { [roomKey]: roomCount }
+              : { small: 1 };
+
+          return Object.fromEntries(
+            Object.entries(ROOM_TYPES).map(([key, room]) => [
+              key,
+              clampRoomCount(source[key], room.maxRooms),
+            ]),
+          );
+        }
+
+        function summarizeRoomSelection(roomCounts) {
+          const normalizedRoomCounts = normalizeRoomCounts(roomCounts);
+          const rooms = Object.entries(normalizedRoomCounts)
+            .filter(([, count]) => count > 0)
+            .map(([roomKey, count]) => ({
+              roomKey,
+              count,
+              ...ROOM_TYPES[roomKey],
+            }));
+          const roomCount = rooms.reduce((total, room) => total + room.count, 0);
+          const maximumCats = rooms.reduce(
+            (total, room) => total + room.maxCatsPerRoom * room.count,
+            0,
+          );
+          const baseRoomFeePerNight = rooms.reduce(
+            (total, room) => total + room.baseRate * room.count,
+            0,
+          );
+          const roomNames = rooms.map((room) => room.name).join("＋");
+          const roomSummary = rooms
+            .map((room) => `${room.name} ${room.count} 間`)
+            .join("＋");
+          const roomRateFormula = rooms
+            .map((room) => `${formatMoney(room.baseRate)} × ${room.count} 間`)
+            .join("＋");
+
+          return {
+            roomCounts: normalizedRoomCounts,
+            rooms,
+            roomCount,
+            maximumCats,
+            baseRoomFeePerNight,
+            roomNames,
+            roomSummary,
+            roomRateFormula,
+          };
         }
 
         function getMealQuantityLimit(mealPlanKey, nights, cats = 1) {
@@ -2360,6 +2487,7 @@
         }
 
         function calculateStay({
+          roomCounts,
           roomKey,
           roomCount = 1,
           cats,
@@ -2369,10 +2497,12 @@
           mealPlanKey = "none",
           mealQuantity = 1,
         }) {
-          const room = ROOM_TYPES[roomKey];
-          const normalizedRoomCount = clampRooms(roomCount, room.maxRooms);
-          const maximumCats = room.maxCatsPerRoom * normalizedRoomCount;
-          const normalizedCats = clampCats(cats, maximumCats);
+          const roomSelection = summarizeRoomSelection(
+            normalizeRoomCounts(roomCounts, roomKey, roomCount),
+          );
+          if (!roomSelection.roomCount) throw new Error("請至少選擇一種房型");
+
+          const normalizedCats = clampCats(cats, roomSelection.maximumCats);
           const nights = daysBetween(checkIn, checkOut);
           const normalizedMealPlanKey = MEAL_PLANS[mealPlanKey] ? mealPlanKey : "none";
           const mealPlan = MEAL_PLANS[normalizedMealPlanKey];
@@ -2391,22 +2521,30 @@
             mealPlan.unitRatePerCat *
             normalizedMealQuantity *
             (mealQuantityScope === "booking" ? 1 : normalizedCats);
-          const baseRoomFeePerNight = room.baseRate * normalizedRoomCount;
-          const extraCatCount = Math.max(0, normalizedCats - normalizedRoomCount);
+          const extraCatCount = Math.max(0, normalizedCats - roomSelection.roomCount);
           const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
-          const nightlyRate = baseRoomFeePerNight + extraCatFeePerNight;
+          const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
           const staySubtotal = nightlyRate * nights;
           const longStayTier = getLongStayTier(nights);
           const discountRate = 1 - longStayTier.multiplier;
           const discountedStaySubtotal = Math.round(staySubtotal * longStayTier.multiplier);
           const discountAmount = staySubtotal - discountedStaySubtotal;
           const daycareFee = isLate ? nightlyRate * DAYCARE_RATE : 0;
+          const singleRoom = roomSelection.rooms.length === 1
+            ? ROOM_TYPES[roomSelection.rooms[0].roomKey]
+            : {
+                name: roomSelection.roomNames,
+                baseRate: roomSelection.baseRoomFeePerNight,
+                maxCatsPerRoom: roomSelection.maximumCats,
+                maxRooms: roomSelection.roomCount,
+              };
 
           return {
-            room,
-            roomKey,
-            roomCount: normalizedRoomCount,
-            maximumCats,
+            ...roomSelection,
+            room: singleRoom,
+            roomKey: roomSelection.rooms.length === 1
+              ? roomSelection.rooms[0].roomKey
+              : "mixed",
             cats: normalizedCats,
             checkIn,
             checkOut,
@@ -2419,7 +2557,6 @@
             mealUnit: normalizedMealPlanKey === "canned" ? "罐" : mealPlan.unit,
             mealUnitRatePerCat: mealPlan.unitRatePerCat,
             mealSubtotal,
-            baseRoomFeePerNight,
             extraCatCount,
             extraCatFeePerNight,
             nightlyRate,
@@ -2436,17 +2573,20 @@
         }
 
         function getFormState() {
-          const roomKey = form.elements.room.value;
-          const room = ROOM_TYPES[roomKey];
-          const roomCount = clampRooms(roomCountInput.value, room.maxRooms);
+          const roomCounts = Object.fromEntries(
+            Object.entries(roomControls).map(([roomKey, controls]) => [
+              roomKey,
+              clampRoomCount(controls.input.value, ROOM_TYPES[roomKey].maxRooms),
+            ]),
+          );
+          const roomSelection = summarizeRoomSelection(roomCounts);
           const checkIn = checkInInput.value;
           const checkOut = checkOutInput.value;
           const nights = checkIn && checkOut ? daysBetween(checkIn, checkOut) : 1;
           const mealPlanKey = form.elements.mealPlan.value;
-          const cats = clampCats(catCountInput.value, room.maxCatsPerRoom * roomCount);
+          const cats = clampCats(catCountInput.value, Math.max(1, roomSelection.maximumCats));
           return {
-            roomKey,
-            roomCount,
+            roomCounts: roomSelection.roomCounts,
             cats,
             checkIn,
             checkOut,
@@ -2467,22 +2607,31 @@
           checkOutInput.setAttribute("aria-invalid", message ? "true" : "false");
         }
 
+        function setRoomError(message = "") {
+          roomError.textContent = message;
+          roomError.classList.toggle("is-visible", Boolean(message));
+        }
+
         function renderEmptyState(state, message) {
-          const room = ROOM_TYPES[state.roomKey];
-          const baseRoomFeePerNight = room.baseRate * state.roomCount;
-          const extraCatCount = Math.max(0, state.cats - state.roomCount);
+          const roomSelection = summarizeRoomSelection(state.roomCounts);
+          const extraCatCount = roomSelection.roomCount
+            ? Math.max(0, state.cats - roomSelection.roomCount)
+            : 0;
           const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
-          const nightlyRate = baseRoomFeePerNight + extraCatFeePerNight;
+          const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
 
           currentQuote = null;
           output.totalAmount.textContent = "NT$0";
-          output.staySummary.textContent = "請確認預計住宿日期";
+          output.staySummary.textContent = roomSelection.roomCount
+            ? "請確認預計住宿日期"
+            : "請至少選擇一種房型";
           output.discountBadge.hidden = true;
           output.nightlyRate.textContent = formatMoney(nightlyRate);
-          output.nightlyFormula.textContent =
-            extraCatCount > 0
-              ? `${formatMoney(room.baseRate)} × ${state.roomCount} 間＋加貓 ${formatMoney(extraCatFeePerNight)}`
-              : `${formatMoney(room.baseRate)} × ${state.roomCount} 間`;
+          output.nightlyFormula.textContent = roomSelection.roomCount
+            ? extraCatCount > 0
+              ? `${roomSelection.roomRateFormula}＋加貓 ${formatMoney(extraCatFeePerNight)}`
+              : roomSelection.roomRateFormula
+            : "尚未選擇房型";
           output.nightCountLabel.textContent = "0 晚";
           output.staySubtotal.textContent = "NT$0";
           output.discountLabel.textContent = "未達 7 晚";
@@ -2504,15 +2653,15 @@
           const spansDifferentYears = quote.checkIn.slice(0, 4) !== quote.checkOut.slice(0, 4);
 
           output.totalAmount.textContent = formatMoney(quote.total);
-          output.staySummary.textContent = `${quote.room.name}・${quote.roomCount} 間・${quote.cats} 貓・${formatDate(
+          output.staySummary.textContent = `${quote.roomSummary}・${quote.cats} 貓・${formatDate(
             quote.checkIn,
             spansDifferentYears,
           )}–${formatDate(quote.checkOut, spansDifferentYears)}・${quote.nights} 晚`;
           output.nightlyRate.textContent = formatMoney(quote.nightlyRate);
           output.nightlyFormula.textContent =
             quote.extraCatCount > 0
-              ? `${formatMoney(quote.room.baseRate)} × ${quote.roomCount} 間＋加貓 ${formatMoney(quote.extraCatFeePerNight)}`
-              : `${formatMoney(quote.room.baseRate)} × ${quote.roomCount} 間`;
+              ? `${quote.roomRateFormula}＋加貓 ${formatMoney(quote.extraCatFeePerNight)}`
+              : quote.roomRateFormula;
           output.nightCountLabel.textContent = `${formatMoney(quote.nightlyRate)} × ${quote.nights} 晚`;
           output.staySubtotal.textContent = formatMoney(quote.staySubtotal);
           output.discountLabel.textContent =
@@ -2587,26 +2736,35 @@
 
         function updateCalculator() {
           const state = getFormState();
-          const room = ROOM_TYPES[state.roomKey];
-          const maxRooms = room.maxRooms;
-          const maxCats = room.maxCatsPerRoom * state.roomCount;
+          const roomSelection = summarizeRoomSelection(state.roomCounts);
+          const maxCats = roomSelection.maximumCats;
           const nights = state.checkIn && state.checkOut
             ? daysBetween(state.checkIn, state.checkOut)
             : 0;
-          roomCountInput.value = state.roomCount;
-          roomCountInput.max = maxRooms;
-          roomCountInput.readOnly = maxRooms === 1;
-          roomCountNote.textContent = maxRooms === 1
-            ? `此房型僅可預約 1 間・每間最多 ${room.maxCatsPerRoom} 隻貓`
-            : `每間最多 ${room.maxCatsPerRoom} 隻貓`;
-          decreaseRoomsButton.disabled = state.roomCount <= 1;
-          increaseRoomsButton.disabled = state.roomCount >= maxRooms;
+          Object.entries(roomControls).forEach(([roomKey, controls]) => {
+            const count = roomSelection.roomCounts[roomKey];
+            const maxRooms = ROOM_TYPES[roomKey].maxRooms;
+            controls.input.value = count;
+            controls.input.max = maxRooms;
+            controls.toggle.checked = count > 0;
+            controls.decrease.disabled = count <= 0;
+            controls.increase.disabled = count >= maxRooms;
+          });
           catCountInput.value = state.cats;
-          catCountInput.max = maxCats;
-          catLimitNote.textContent = `每間基本房價含 1 隻；超出房數的貓每隻每晚加收 NT$200・本次最多 ${maxCats} 隻`;
+          catCountInput.max = Math.max(1, maxCats);
+          catLimitNote.textContent = roomSelection.roomCount
+            ? `每間基本房價含 1 隻；超出房數的貓每隻每晚加收 NT$200・本次最多 ${maxCats} 隻`
+            : "請先選擇至少一種房型";
           decreaseCatsButton.disabled = state.cats <= 1;
-          increaseCatsButton.disabled = state.cats >= maxCats;
+          increaseCatsButton.disabled = !roomSelection.roomCount || state.cats >= maxCats;
           updateMealQuantityControls(state, nights);
+
+          if (!roomSelection.roomCount) {
+            setRoomError("請至少選擇一種房型。");
+            renderEmptyState(state, "");
+            return;
+          }
+          setRoomError();
 
           if (!state.checkIn || !state.checkOut) {
             renderEmptyState(state, "請完整選擇入住日期與退宿日期。");
@@ -2623,19 +2781,22 @@
 
         function setCatCount(nextValue) {
           const state = getFormState();
-          const maximumCats = ROOM_TYPES[state.roomKey].maxCatsPerRoom * state.roomCount;
+          const maximumCats = summarizeRoomSelection(state.roomCounts).maximumCats;
+          if (!maximumCats) return;
           catCountInput.value = clampCats(nextValue, maximumCats);
           updateCalculator();
         }
 
-        function setRoomCount(nextValue) {
-          const roomKey = form.elements.room.value;
-          roomCountInput.value = clampRooms(nextValue, ROOM_TYPES[roomKey].maxRooms);
+        function setRoomCount(roomKey, nextValue) {
+          const controls = roomControls[roomKey];
+          const count = clampRoomCount(nextValue, ROOM_TYPES[roomKey].maxRooms);
+          controls.input.value = count;
+          controls.toggle.checked = count > 0;
           updateCalculator();
         }
 
         function renderReservationSummary(quote) {
-          output.reservationRoom.textContent = quote.room.name;
+          output.reservationRoom.textContent = quote.roomSummary;
           output.reservationRooms.textContent = `${quote.roomCount} 間`;
           output.reservationDates.textContent = `${formatDateForQuote(
             quote.checkIn,
@@ -2836,8 +2997,12 @@
               emergencyRelation: getReservationValue(formData, "emergencyRelation", ""),
             },
             booking: {
-              roomKey: quote.roomKey,
+              ...(quote.rooms.length === 1 ? { roomKey: quote.rooms[0].roomKey } : {}),
               roomCount: quote.roomCount,
+              rooms: quote.rooms.map((room) => ({
+                roomKey: room.roomKey,
+                roomCount: room.count,
+              })),
               cats: quote.cats,
               checkIn: quote.checkIn,
               checkOut: quote.checkOut,
@@ -2950,9 +3115,28 @@
             if (queueBookingPayload(payload)) {
               return { ok: true, opaque: true, queued: true };
             }
-            await postOpaqueBookingPayload(payload, timeoutMs);
+            postOpaqueBookingPayload(payload, timeoutMs).catch(() => {});
             return { ok: true, opaque: true, queued: false };
           }
+        }
+
+        function scrollToPaymentDetails() {
+          const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+          const schedule = window.requestAnimationFrame
+            ? window.requestAnimationFrame.bind(window)
+            : (callback) => window.setTimeout(callback, 0);
+
+          schedule(() => {
+            paymentDetails.scrollIntoView?.({
+              behavior: reduceMotion ? "auto" : "smooth",
+              block: "start",
+            });
+            try {
+              paymentDetails.focus({ preventScroll: true });
+            } catch (error) {
+              paymentDetails.focus();
+            }
+          });
         }
 
         async function copyPaymentAccountNumber() {
@@ -2993,7 +3177,12 @@
           checkOutInput.min = checkOut;
         }
 
-        form.addEventListener("input", updateCalculator);
+        form.addEventListener("input", (event) => {
+          const isRoomToggle = Object.values(roomControls).some(
+            (controls) => controls.toggle === event.target,
+          );
+          if (!isRoomToggle) updateCalculator();
+        });
         form.addEventListener("change", updateCalculator);
 
         checkInInput.addEventListener("change", () => {
@@ -3018,16 +3207,22 @@
           setCatCount(catCountInput.value);
         });
 
-        decreaseRoomsButton.addEventListener("click", () => {
-          setRoomCount(Number(roomCountInput.value) - 1);
-        });
-
-        increaseRoomsButton.addEventListener("click", () => {
-          setRoomCount(Number(roomCountInput.value) + 1);
-        });
-
-        roomCountInput.addEventListener("blur", () => {
-          setRoomCount(roomCountInput.value);
+        Object.entries(roomControls).forEach(([roomKey, controls]) => {
+          controls.toggle.addEventListener("change", () => {
+            setRoomCount(
+              roomKey,
+              controls.toggle.checked ? Math.max(1, Number(controls.input.value)) : 0,
+            );
+          });
+          controls.decrease.addEventListener("click", () => {
+            setRoomCount(roomKey, Number(controls.input.value) - 1);
+          });
+          controls.increase.addEventListener("click", () => {
+            setRoomCount(roomKey, Number(controls.input.value) + 1);
+          });
+          controls.input.addEventListener("blur", () => {
+            setRoomCount(roomKey, controls.input.value);
+          });
         });
 
         decreaseMealQuantityButton.addEventListener("click", () => {
@@ -3098,15 +3293,16 @@
             reservationStatus.textContent = "預約資料已送出。";
             reservationStatus.classList.add("is-success");
             successReservationId.textContent = reservationId;
+            setSubmitted();
             reservationSuccess.hidden = false;
-            submitButton.hidden = true;
             setProgressState(2);
             pendingSubmission = null;
+            scrollToPaymentDetails();
           } catch (error) {
             reservationStatus.textContent =
               "目前無法登記預約資料，請確認網路連線後再試一次。";
           } finally {
-            if (!submitButton.hidden) setSubmitting(false);
+            if (!submitButton.classList.contains("is-submitted")) setSubmitting(false);
           }
         });
 
