@@ -1698,7 +1698,7 @@
                     <span class="radio-dot" aria-hidden="true"></span>
                     <span class="time-choice-copy">
                       <strong>罐頭</strong>
-                      <span>每隻每罐 NT$30</span>
+                      <span>每罐 NT$30</span>
                     </span>
                   </span>
                 </label>
@@ -1721,7 +1721,7 @@
                 <strong id="mealQuantityTitle">每隻貓要加購幾天？</strong>
                 <span id="mealQuantityHelp">請選擇實際需要加購的數量</span>
               </div>
-              <div class="stepper" id="mealQuantityStepper" role="group" aria-label="每隻貓伙食加購數量">
+              <div class="stepper" id="mealQuantityStepper" role="group" aria-label="伙食加購數量">
                 <button type="button" id="decreaseMealQuantity" aria-label="減少一份">−</button>
                 <input
                   id="mealQuantity"
@@ -1732,12 +1732,12 @@
                   max="1"
                   step="1"
                   inputmode="numeric"
-                  aria-label="每隻貓伙食加購數量"
+                  aria-label="伙食加購數量"
                 />
                 <button type="button" id="increaseMealQuantity" aria-label="增加一份">＋</button>
               </div>
             </div>
-            <p class="date-caption">乾飼料與套組可選加購天數；罐頭可選餐數，每餐以一罐計。伙食費不參與長住折扣。</p>
+            <p class="date-caption">乾飼料與套組可選每隻貓的加購天數；罐頭只需選擇整筆預約的總罐數。伙食費不參與長住折扣。</p>
           </section>
         </form>
 
@@ -2247,27 +2247,30 @@
           return Math.min(maxCats, Math.max(1, parsed));
         }
 
-        function getMealQuantityLimit(mealPlanKey, nights) {
+        function getMealQuantityLimit(mealPlanKey, nights, cats = 1) {
           const mealPlan = MEAL_PLANS[mealPlanKey] || MEAL_PLANS.none;
           const normalizedNights = Number.isInteger(nights) && nights > 0 ? nights : 1;
           if (mealPlan.quantityType === "days") return normalizedNights;
           if (mealPlan.quantityType === "meals") {
-            return normalizedNights * MAX_CANS_PER_CAT_PER_DAY;
+            return normalizedNights * MAX_CANS_PER_CAT_PER_DAY * Math.max(1, cats);
           }
           return 0;
         }
 
-        function clampMealQuantity(value, mealPlanKey, nights) {
+        function clampMealQuantity(value, mealPlanKey, nights, cats = 1) {
           if (mealPlanKey === "none") return 0;
           const parsed = Number.parseInt(value, 10);
           if (!Number.isFinite(parsed)) return 1;
-          return Math.min(getMealQuantityLimit(mealPlanKey, nights), Math.max(1, parsed));
+          return Math.min(
+            getMealQuantityLimit(mealPlanKey, nights, cats),
+            Math.max(1, parsed),
+          );
         }
 
         function describeMeal(quote) {
           if (quote.mealPlanKey === "none") return "不加購";
           if (quote.mealPlanKey === "canned") {
-            return `${quote.mealPlan.name}・每隻共 ${quote.mealQuantity} 餐（${quote.mealQuantity} 罐）`;
+            return `${quote.mealPlan.name}・整筆共 ${quote.mealQuantity} 罐`;
           }
           return `${quote.mealPlan.name}・每隻 ${quote.mealQuantity} 天`;
         }
@@ -2301,9 +2304,17 @@
             mealQuantity,
             normalizedMealPlanKey,
             nights,
+            normalizedCats,
           );
+          const mealQuantityScope = normalizedMealPlanKey === "none"
+            ? "none"
+            : normalizedMealPlanKey === "canned"
+              ? "booking"
+              : "perCat";
           const mealSubtotal =
-            mealPlan.unitRatePerCat * normalizedMealQuantity * normalizedCats;
+            mealPlan.unitRatePerCat *
+            normalizedMealQuantity *
+            (mealQuantityScope === "booking" ? 1 : normalizedCats);
           const extraCatFeePerNight = EXTRA_CAT_RATE * Math.max(0, normalizedCats - 1);
           const nightlyRate = room.baseRate + extraCatFeePerNight;
           const staySubtotal = nightlyRate * nights;
@@ -2324,7 +2335,8 @@
             mealPlan,
             mealPlanKey: normalizedMealPlanKey,
             mealQuantity: normalizedMealQuantity,
-            mealUnit: mealPlan.unit,
+            mealQuantityScope,
+            mealUnit: normalizedMealPlanKey === "canned" ? "罐" : mealPlan.unit,
             mealUnitRatePerCat: mealPlan.unitRatePerCat,
             mealSubtotal,
             extraCatFeePerNight,
@@ -2347,9 +2359,10 @@
           const checkOut = checkOutInput.value;
           const nights = checkIn && checkOut ? daysBetween(checkIn, checkOut) : 1;
           const mealPlanKey = form.elements.mealPlan.value;
+          const cats = clampCats(catCountInput.value, ROOM_TYPES[roomKey].maxCats);
           return {
             roomKey,
-            cats: clampCats(catCountInput.value, ROOM_TYPES[roomKey].maxCats),
+            cats,
             checkIn,
             checkOut,
             isLate: form.elements.checkoutTime.value === "late",
@@ -2358,6 +2371,7 @@
               mealQuantityInput.value,
               mealPlanKey,
               nights,
+              cats,
             ),
           };
         }
@@ -2453,28 +2467,30 @@
           const mealPlan = MEAL_PLANS[state.mealPlanKey];
           const hasMealPlan = state.mealPlanKey !== "none";
           const isCanned = mealPlan.quantityType === "meals";
-          const unit = isCanned ? "餐" : "天";
+          const unit = isCanned ? "罐" : "天";
           const quantityLimit = hasMealPlan
-            ? getMealQuantityLimit(state.mealPlanKey, nights)
+            ? getMealQuantityLimit(state.mealPlanKey, nights, state.cats)
             : 0;
 
           mealQuantityRow.hidden = !hasMealPlan;
           if (!hasMealPlan) return;
 
           mealQuantityTitle.textContent = isCanned
-            ? "每隻貓整段住宿要加購幾餐？"
+            ? "整段住宿總共要加購幾罐？"
             : "每隻貓要加購幾天？";
           mealQuantityHelp.textContent = isCanned
-            ? "每餐以一罐計；NT$30 × 餐數 × 貓咪數量"
+            ? "每罐 NT$30；請填整筆預約的總罐數，不會乘上貓咪數量"
             : `${formatMoney(mealPlan.unitRatePerCat)} × 天數 × 貓咪數量（最多 ${Math.max(1, nights)} 天）`;
           mealQuantityInput.value = clampMealQuantity(
             state.mealQuantity,
             state.mealPlanKey,
             nights,
+            state.cats,
           );
           mealQuantityInput.max = quantityLimit;
-          mealQuantityInput.setAttribute("aria-label", `每隻貓伙食加購${unit}數`);
-          mealQuantityStepper.setAttribute("aria-label", `每隻貓伙食加購${unit}數`);
+          const quantityLabel = isCanned ? "罐頭總罐數" : "每隻貓伙食加購天數";
+          mealQuantityInput.setAttribute("aria-label", quantityLabel);
+          mealQuantityStepper.setAttribute("aria-label", quantityLabel);
           decreaseMealQuantityButton.setAttribute("aria-label", `減少一${unit}`);
           increaseMealQuantityButton.setAttribute("aria-label", `增加一${unit}`);
           decreaseMealQuantityButton.disabled = Number(mealQuantityInput.value) <= 1;
@@ -2714,6 +2730,7 @@
               isLate: quote.isLate,
               mealPlanKey: quote.mealPlanKey,
               mealQuantity: quote.mealQuantity,
+              mealQuantityScope: quote.mealQuantityScope,
               arrivalTime: getReservationValue(formData, "arrivalTime", ""),
               departureTime: getReservationValue(formData, "departureTime", ""),
             },
@@ -2819,6 +2836,7 @@
             Number(mealQuantityInput.value) - 1,
             state.mealPlanKey,
             daysBetween(state.checkIn, state.checkOut),
+            state.cats,
           );
           updateCalculator();
         });
@@ -2829,6 +2847,7 @@
             Number(mealQuantityInput.value) + 1,
             state.mealPlanKey,
             daysBetween(state.checkIn, state.checkOut),
+            state.cats,
           );
           updateCalculator();
         });
@@ -2839,6 +2858,7 @@
             mealQuantityInput.value,
             state.mealPlanKey,
             daysBetween(state.checkIn, state.checkOut),
+            state.cats,
           );
           updateCalculator();
         });

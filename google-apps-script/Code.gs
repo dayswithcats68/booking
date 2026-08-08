@@ -42,9 +42,9 @@ const MEAL_HEADERS = Object.freeze([
   "每貓每日伙食費",
   "伙食計費日數",
   "伙食小計",
-  "每貓加購數量",
+  "加購數量",
   "伙食計價單位",
-  "每貓單價",
+  "單位價格",
 ]);
 
 function doGet() {
@@ -278,7 +278,9 @@ function createDetailedEmailBody_(booking) {
   const mealLine = quote.mealPlanKey === "none"
     ? "不加購"
     : quote.mealPlanKey === "canned"
-      ? `${quote.mealPlan.name}｜每隻共 ${quote.mealQuantity} 餐（${quote.mealQuantity} 罐）｜每隻每餐 NT$${formatInteger_(quote.mealUnitRatePerCat)}`
+      ? quote.mealQuantityScope === "booking"
+        ? `${quote.mealPlan.name}｜整筆預約共 ${quote.mealQuantity} 罐｜每罐 NT$${formatInteger_(quote.mealUnitRatePerCat)}`
+        : `${quote.mealPlan.name}｜每隻共 ${quote.mealQuantity} 餐（${quote.mealQuantity} 罐）｜每隻每餐 NT$${formatInteger_(quote.mealUnitRatePerCat)}`
       : `${quote.mealPlan.name}｜每隻 ${quote.mealQuantity} 天｜每隻每日 NT$${formatInteger_(quote.mealUnitRatePerCat)}`;
   const catSections = booking.cats.flatMap((cat, index) => [
     `第 ${index + 1} 隻｜${cat.name}`,
@@ -414,11 +416,21 @@ function calculateQuote_(booking) {
   const hasNewMealQuantity = booking.mealQuantity !== undefined
     && booking.mealQuantity !== null
     && String(booking.mealQuantity).trim() !== "";
+  const requestedMealQuantityScope = optionalText_(booking.mealQuantityScope, 20);
   let mealQuantity = 0;
   let mealQuantitySource = "none";
+  let mealQuantityScope = "none";
   let legacyCansPerCatPerDay = 0;
 
   if (mealPlanKey !== "none") {
+    if (mealPlanKey === "canned" && requestedMealQuantityScope === "booking") {
+      mealQuantityScope = "booking";
+    } else if (!requestedMealQuantityScope || requestedMealQuantityScope === "perCat") {
+      mealQuantityScope = "perCat";
+    } else {
+      throw new Error("伙食計價方式不正確");
+    }
+
     if (hasNewMealQuantity) {
       mealQuantity = Number(booking.mealQuantity);
       mealQuantitySource = "quantity";
@@ -440,7 +452,7 @@ function calculateQuote_(booking) {
 
     const maximumMealQuantity = mealPlan.quantityType === "days"
       ? nights
-      : nights * MAX_CANS_PER_CAT_PER_DAY;
+      : nights * MAX_CANS_PER_CAT_PER_DAY * (mealQuantityScope === "booking" ? cats : 1);
     if (
       !Number.isInteger(mealQuantity) ||
       mealQuantity < 1 ||
@@ -449,13 +461,17 @@ function calculateQuote_(booking) {
       throw new Error(
         mealPlan.quantityType === "days"
           ? "伙食加購天數不正確"
-          : "罐頭加購餐數不正確"
+          : mealQuantityScope === "booking"
+            ? "罐頭總數不正確"
+            : "罐頭加購餐數不正確"
       );
     }
   }
 
   const mealUnitRatePerCat = mealPlan.unitRatePerCat;
-  const mealSubtotal = mealUnitRatePerCat * mealQuantity * cats;
+  const mealSubtotal = mealUnitRatePerCat
+    * mealQuantity
+    * (mealQuantityScope === "booking" ? 1 : cats);
   const nightlyRate = room.baseRate + EXTRA_CAT_RATE * Math.max(0, cats - 1);
   const staySubtotal = nightlyRate * nights;
   const discountMultiplier = nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
@@ -475,7 +491,10 @@ function calculateQuote_(booking) {
     mealPlanKey,
     mealQuantity,
     mealQuantitySource,
-    mealUnit: mealPlan.unit,
+    mealQuantityScope,
+    mealUnit: mealPlanKey === "canned" && mealQuantityScope === "booking"
+      ? "罐"
+      : mealPlan.unit,
     mealUnitRatePerCat,
     legacyCansPerCatPerDay,
     mealSubtotal,
