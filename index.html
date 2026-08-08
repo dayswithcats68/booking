@@ -2159,6 +2159,7 @@
         const APP_VERSION = "線上預約與雲端登記頁面";
         const APP_CONFIG = window.CAT_STAY_CONFIG || {};
         const BOOKING_ENDPOINT = String(APP_CONFIG.bookingEndpoint || "").trim();
+        const BOOKING_RESPONSE_TIMEOUT_MS = 15000;
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
         const MAX_CANS_PER_CAT_PER_DAY = 20;
@@ -2852,18 +2853,92 @@
           };
         }
 
-        async function postBookingPayload(payload, allowOpaqueFallback = true) {
-          if (!BOOKING_ENDPOINT) throw new Error("預約資料庫尚未設定");
-          const requestOptions = {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(payload),
-            redirect: "follow",
-          };
+        async function fetchBookingResponse(payload, timeoutMs) {
+          const controller = typeof AbortController === "function"
+            ? new AbortController()
+            : null;
+          let timeoutId;
+          const timeoutPromise = new Promise((resolve, reject) => {
+            timeoutId = window.setTimeout(() => {
+              controller?.abort();
+              const timeoutError = new Error("預約資料庫回應逾時");
+              timeoutError.name = "BookingTimeoutError";
+              reject(timeoutError);
+            }, timeoutMs);
+          });
 
           try {
-            const response = await fetch(BOOKING_ENDPOINT, requestOptions);
-            const result = await response.json();
+            return await Promise.race([
+              (async () => {
+                const response = await fetch(BOOKING_ENDPOINT, {
+                  method: "POST",
+                  headers: { "Content-Type": "text/plain;charset=utf-8" },
+                  body: JSON.stringify(payload),
+                  redirect: "follow",
+                  signal: controller?.signal,
+                });
+                const result = await response.json();
+                return { response, result };
+              })(),
+              timeoutPromise,
+            ]);
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+        }
+
+        function queueBookingPayload(payload) {
+          if (typeof navigator.sendBeacon !== "function" || typeof Blob !== "function") {
+            return false;
+          }
+
+          try {
+            return navigator.sendBeacon(
+              BOOKING_ENDPOINT,
+              new Blob([JSON.stringify(payload)], { type: "text/plain;charset=utf-8" }),
+            );
+          } catch (error) {
+            return false;
+          }
+        }
+
+        async function postOpaqueBookingPayload(payload, timeoutMs) {
+          const controller = typeof AbortController === "function"
+            ? new AbortController()
+            : null;
+          let timeoutId;
+          const timeoutPromise = new Promise((resolve, reject) => {
+            timeoutId = window.setTimeout(() => {
+              controller?.abort();
+              const timeoutError = new Error("預約資料送出逾時");
+              timeoutError.name = "BookingTimeoutError";
+              reject(timeoutError);
+            }, timeoutMs);
+          });
+
+          try {
+            await Promise.race([
+              fetch(BOOKING_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload),
+                redirect: "follow",
+                mode: "no-cors",
+                keepalive: true,
+                signal: controller?.signal,
+              }),
+              timeoutPromise,
+            ]);
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+        }
+
+        async function postBookingPayload(payload, timeoutMs = BOOKING_RESPONSE_TIMEOUT_MS) {
+          if (!BOOKING_ENDPOINT) throw new Error("預約資料庫尚未設定");
+
+          try {
+            const { response, result } = await fetchBookingResponse(payload, timeoutMs);
             if (!response.ok || !result.ok) {
               const responseError = new Error(result.error || "預約資料無法登記");
               responseError.bookingResponseReceived = true;
@@ -2871,12 +2946,12 @@
             }
             return result;
           } catch (error) {
-            if (!allowOpaqueFallback || error?.bookingResponseReceived) throw error;
-            await fetch(BOOKING_ENDPOINT, {
-              ...requestOptions,
-              mode: "no-cors",
-            });
-            return { ok: true, opaque: true };
+            if (error?.bookingResponseReceived) throw error;
+            if (queueBookingPayload(payload)) {
+              return { ok: true, opaque: true, queued: true };
+            }
+            await postOpaqueBookingPayload(payload, timeoutMs);
+            return { ok: true, opaque: true, queued: false };
           }
         }
 
@@ -3047,6 +3122,7 @@
           generateReservationId,
           getLongStayTier,
           mealPlans: MEAL_PLANS,
+          postBookingPayload,
           renderCatForms,
           roomTypes: ROOM_TYPES,
         });

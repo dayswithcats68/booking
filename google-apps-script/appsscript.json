@@ -1,6 +1,19 @@
 {
   "timeZone": "Asia/Taipei",
-  "dependencies": {},
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Calendar",
+        "version": "v3",
+        "serviceId": "calendar"
+      }
+    ]
+  },
   "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.send_mail",
+    "https://www.googleapis.com/auth/calendar.events.owned"
+  ],
   "runtimeVersion": "V8"
 }
