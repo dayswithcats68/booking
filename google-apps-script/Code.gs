@@ -212,7 +212,7 @@ function saveBooking_(payload) {
     safeText_(emergencyName),
     safeText_(emergencyPhone),
     safeText_(emergencyRelation),
-    quote.room.name,
+    safeText_(quote.roomSummary),
     parseDate_(quote.checkIn, "入住日期"),
     safeText_(arrivalTime),
     parseDate_(quote.checkOut, "退宿日期"),
@@ -402,7 +402,7 @@ function createCalendarEventTitle_(booking) {
     "【待確認】貓家日子住宿",
     booking.owner.name,
     `${booking.quote.cats} 隻`,
-    `${booking.quote.room.name} ${booking.quote.roomCount} 間`,
+    booking.quote.roomSummary,
   ].join("｜");
 }
 
@@ -419,7 +419,7 @@ function createCalendarEventDescription_(booking) {
     "預約狀態：待訂金付款與店家確認",
     `入住：${quote.checkIn} ${booking.arrivalTime}`,
     `退宿：${quote.checkOut} ${booking.departureTime}`,
-    `房型：${quote.room.name}｜${quote.roomCount} 間`,
+    `房型：${quote.roomSummary}`,
     `貓咪數量：${quote.cats} 隻`,
     `貓咪姓名：${booking.cats.map((cat) => cat.name).join("、")}`,
     `伙食加購：${mealLine}`,
@@ -494,7 +494,7 @@ function createDetailedEmailBody_(booking) {
     "【預約資訊】",
     `預約編號：${booking.reservationId}`,
     `送出時間：${formatTaipeiDateTime_(booking.submittedAt)}`,
-    `房型：${quote.room.name}`,
+    `房型：${quote.roomSummary}`,
     `房間數量：${quote.roomCount} 間`,
     `入住：${quote.checkIn} ${booking.arrivalTime}`,
     `退宿：${quote.checkOut} ${booking.departureTime}`,
@@ -504,7 +504,7 @@ function createDetailedEmailBody_(booking) {
     `伙食加購：${mealLine}`,
     "",
     "【費用明細】",
-    `房間基本費：NT$${formatInteger_(quote.baseRoomFeePerNight)}／晚（NT$${formatInteger_(quote.room.baseRate)} × ${quote.roomCount} 間）`,
+    `房間基本費：NT$${formatInteger_(quote.baseRoomFeePerNight)}／晚（${quote.roomRateFormula}）`,
     `加貓費：NT$${formatInteger_(quote.extraCatFeePerNight)}／晚（${quote.extraCatCount} 隻）`,
     `單晚房價：NT$${formatInteger_(quote.nightlyRate)}`,
     `住宿原價：NT$${formatInteger_(quote.staySubtotal)}`,
@@ -589,11 +589,59 @@ function findReservationRow_(sheet, reservationId) {
   return match ? match.getRow() : 0;
 }
 
-function calculateQuote_(booking) {
+function normalizeRoomSelection_(booking) {
+  const hasRoomSelections = Array.isArray(booking.rooms);
+
+  if (hasRoomSelections) {
+    if (!booking.rooms.length || booking.rooms.length > Object.keys(ROOM_TYPES).length) {
+      throw new Error("房型選擇不正確");
+    }
+
+    const seenRoomKeys = new Set();
+    const rooms = booking.rooms.map((selection) => {
+      if (!selection || typeof selection !== "object" || Array.isArray(selection)) {
+        throw new Error("房型選擇不正確");
+      }
+      const roomKey = requiredText_(selection.roomKey, "房型", 20);
+      const room = ROOM_TYPES[roomKey];
+      if (!room || seenRoomKeys.has(roomKey)) throw new Error("房型選擇不正確");
+      seenRoomKeys.add(roomKey);
+
+      const count = Number(selection.roomCount);
+      if (!Number.isInteger(count) || count < 1 || count > room.maxRooms) {
+        throw new Error(`${room.name}的房間數量不正確`);
+      }
+      return { roomKey, count, ...room };
+    });
+
+    const roomCount = rooms.reduce((total, room) => total + room.count, 0);
+    const declaredRoomCount = booking.roomCount === undefined
+      || booking.roomCount === null
+      || String(booking.roomCount).trim() === ""
+      ? roomCount
+      : Number(booking.roomCount);
+    if (!Number.isInteger(declaredRoomCount) || declaredRoomCount !== roomCount) {
+      throw new Error("房間總數與房型明細不一致");
+    }
+
+    return {
+      rooms,
+      roomCount,
+      roomQuantitySource: "rooms",
+      maximumCats: rooms.reduce(
+        (total, room) => total + room.maxCatsPerRoom * room.count,
+        0
+      ),
+      baseRoomFeePerNight: rooms.reduce(
+        (total, room) => total + room.baseRate * room.count,
+        0
+      ),
+    };
+  }
+
   const roomKey = requiredText_(booking.roomKey, "房型", 20);
   const room = ROOM_TYPES[roomKey];
   if (!room) throw new Error("房型不正確");
-
   const hasRoomCount = booking.roomCount !== undefined
     && booking.roomCount !== null
     && String(booking.roomCount).trim() !== "";
@@ -602,13 +650,28 @@ function calculateQuote_(booking) {
     throw new Error(`${room.name}的房間數量不正確`);
   }
 
-  // 舊版快取頁面沒有 roomCount，部署交界期間仍沿用舊版單房容量與價格。
-  const maximumCats = hasRoomCount
-    ? room.maxCatsPerRoom * roomCount
-    : room.legacyMaxCats;
+  return {
+    rooms: [{ roomKey, count: roomCount, ...room }],
+    roomCount,
+    roomQuantitySource: hasRoomCount ? "quantity" : "legacy",
+    // 舊版快取頁面沒有 roomCount，部署交界期間仍沿用舊版單房容量。
+    maximumCats: hasRoomCount ? room.maxCatsPerRoom * roomCount : room.legacyMaxCats,
+    baseRoomFeePerNight: room.baseRate * roomCount,
+  };
+}
+
+function calculateQuote_(booking) {
+  const roomSelection = normalizeRoomSelection_(booking);
+  const roomSummary = roomSelection.rooms
+    .map((room) => `${room.name} ${room.count} 間`)
+    .join("＋");
+  const roomNames = roomSelection.rooms.map((room) => room.name).join("＋");
+  const roomRateFormula = roomSelection.rooms
+    .map((room) => `NT$${formatInteger_(room.baseRate)} × ${room.count} 間`)
+    .join("＋");
   const cats = Number(booking.cats);
-  if (!Number.isInteger(cats) || cats < 1 || cats > maximumCats) {
-    throw new Error(`${room.name}的貓咪數量不正確`);
+  if (!Number.isInteger(cats) || cats < 1 || cats > roomSelection.maximumCats) {
+    throw new Error("所選房型的貓咪數量不正確");
   }
 
   const checkIn = requiredDateText_(booking.checkIn, "入住日期");
@@ -681,10 +744,9 @@ function calculateQuote_(booking) {
   const mealSubtotal = mealUnitRatePerCat
     * mealQuantity
     * (mealQuantityScope === "booking" ? 1 : cats);
-  const baseRoomFeePerNight = room.baseRate * roomCount;
-  const extraCatCount = Math.max(0, cats - roomCount);
+  const extraCatCount = Math.max(0, cats - roomSelection.roomCount);
   const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
-  const nightlyRate = baseRoomFeePerNight + extraCatFeePerNight;
+  const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
   const staySubtotal = nightlyRate * nights;
   const discountMultiplier = nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
   const discountName = nights >= 14 ? "9 折" : nights >= 7 ? "95 折" : "無折扣";
@@ -693,10 +755,13 @@ function calculateQuote_(booking) {
   const daycareFee = isLate ? nightlyRate * DAYCARE_RATE : 0;
 
   return {
-    room,
-    roomCount,
-    roomQuantitySource: hasRoomCount ? "quantity" : "legacy",
-    maximumCats,
+    ...roomSelection,
+    room: roomSelection.rooms.length === 1
+      ? ROOM_TYPES[roomSelection.rooms[0].roomKey]
+      : { name: roomNames, baseRate: roomSelection.baseRoomFeePerNight },
+    roomSummary,
+    roomNames,
+    roomRateFormula,
     checkIn,
     checkOut,
     nights,
@@ -713,7 +778,6 @@ function calculateQuote_(booking) {
     mealUnitRatePerCat,
     legacyCansPerCatPerDay,
     mealSubtotal,
-    baseRoomFeePerNight,
     extraCatCount,
     extraCatFeePerNight,
     nightlyRate,
