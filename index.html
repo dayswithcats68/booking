@@ -1160,13 +1160,56 @@
       }
 
       .reservation-success-message {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 22px;
         padding: 15px 16px;
         border: 1px solid rgba(114, 72, 51, 0.16);
         border-radius: 14px;
         background: rgba(255, 253, 249, 0.88);
-        color: var(--ink) !important;
-        font-size: 0.82rem !important;
         text-align: left;
+      }
+
+      .reservation-success-copy {
+        display: grid;
+        gap: 18px;
+      }
+
+      .reservation-success-copy p {
+        color: var(--ink);
+        font-size: 0.82rem;
+        text-align: left;
+      }
+
+      .line-official-qr {
+        display: grid;
+        justify-items: center;
+        gap: 7px;
+        width: 148px;
+        margin: 0;
+      }
+
+      .line-official-qr img {
+        display: block;
+        width: 136px;
+        height: 136px;
+        padding: 6px;
+        border: 1px solid rgba(114, 72, 51, 0.16);
+        border-radius: 12px;
+        background: #ffffff;
+      }
+
+      .line-official-qr figcaption {
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .line-official-qr strong {
+        color: var(--brand-dark);
       }
 
       .payment-details {
@@ -1508,6 +1551,20 @@
         .summary-body {
           padding-right: 22px;
           padding-left: 22px;
+        }
+
+        .reservation-success-message {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+
+        .line-official-qr {
+          width: 100%;
+        }
+
+        .line-official-qr img {
+          width: 148px;
+          height: 148px;
         }
       }
 
@@ -2096,11 +2153,26 @@
                     <h4>預約資料已送出</h4>
                     <p>預約編號：<strong id="successReservationId">—</strong></p>
                   </div>
-                  <p class="reservation-success-message">
-                    敬請於預約七日內匯款訂金500元至以下帳戶，並截圖或私訊您的帳號末五碼傳至貓家日子 Line
-                    官方帳號（@days.cat），我們收到款項即正式為您的寶貝保留房間。<br /><br />
-                    感謝您的預約，期待為您的寶貝服務！
-                  </p>
+                  <div class="reservation-success-message">
+                    <div class="reservation-success-copy">
+                      <p>
+                        敬請於預約七日內匯款訂金500元至以下帳戶，並截圖或私訊您的帳號末五碼傳至貓家日子 Line
+                        官方帳號（@days.cat），我們收到款項即正式為您的寶貝保留房間。
+                      </p>
+                      <p>感謝您的預約，期待為您的寶貝服務！</p>
+                    </div>
+                    <figure class="line-official-qr">
+                      <img
+                        src="https://qr-official.line.me/gs/M_235lzmqu_BW.png?oat_content=qr"
+                        alt="貓家日子 LINE 官方帳號 @days.cat QR Code"
+                        width="148"
+                        height="148"
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                      />
+                      <figcaption>掃描加入 LINE 官方帳號<br /><strong>@days.cat</strong></figcaption>
+                    </figure>
+                  </div>
                   <section
                     class="payment-details"
                     id="paymentDetails"
