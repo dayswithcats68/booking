@@ -802,6 +802,14 @@
         line-height: 1.65;
       }
 
+      .long-stay-notice {
+        margin: -7px 2px 17px;
+        color: var(--brand-dark);
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1.65;
+      }
+
       .primary-button {
         display: inline-flex;
         width: 100%;
@@ -1896,7 +1904,7 @@
               <span id="summaryHeading">您的試算結果</span>
               <span class="live-badge">自動計算</span>
             </div>
-            <p class="total-label">預估總額</p>
+            <p class="total-label" id="totalLabel">預估總額</p>
             <p class="total-amount" id="totalAmount" aria-live="polite">NT$0</p>
             <p class="stay-summary" id="staySummary">請選擇預計住宿日期</p>
             <span class="discount-badge" id="discountBadge" hidden>長住優惠已套用</span>
@@ -1933,8 +1941,10 @@
             <div class="summary-divider"></div>
 
             <p class="formula-note" id="formulaNote">
-              住宿 7 晚以上享 95 折，14 晚以上享 9 折；滿 30 晚視為一個月，住宿費享 7 折。超過 15:00
-              退宿時，再加收單晚房價的 50%。
+              住宿 7–13 晚享 95 折，14–29 晚享 9 折。超過 15:00 退宿時，再加收單晚房價的 50%。
+            </p>
+            <p class="long-stay-notice">
+              住宿滿30晚起即適用長住專案折扣，請致電或洽詢貓家日子 Line 官方帳號，貓家人員會為您提供專屬報價。
             </p>
 
             <button class="primary-button" id="startReservation" type="button">
@@ -2287,13 +2297,8 @@
         const MAX_CANS_PER_CAT_PER_DAY = 20;
         const STANDARD_CHECKOUT_TIME = "15:00";
         const LATEST_DEPARTURE_TIME = "20:30";
+        const LONG_STAY_PROJECT_MIN_NIGHTS = 30;
         const LONG_STAY_TIERS = Object.freeze([
-          {
-            minimumNights: 30,
-            multiplier: 0.7,
-            name: "7 折",
-            description: "30 晚以上（視為一個月）・7 折",
-          },
           { minimumNights: 14, multiplier: 0.9, name: "9 折", description: "14–29 晚・9 折" },
           { minimumNights: 7, multiplier: 0.95, name: "95 折", description: "7–13 晚・95 折" },
         ]);
@@ -2352,6 +2357,7 @@
         const copyPaymentFeedback = document.getElementById("copyPaymentFeedback");
 
         const output = {
+          totalLabel: document.getElementById("totalLabel"),
           totalAmount: document.getElementById("totalAmount"),
           staySummary: document.getElementById("staySummary"),
           discountBadge: document.getElementById("discountBadge"),
@@ -2553,12 +2559,23 @@
         }
 
         function getLongStayTier(nights) {
+          if (nights >= LONG_STAY_PROJECT_MIN_NIGHTS) {
+            return {
+              minimumNights: LONG_STAY_PROJECT_MIN_NIGHTS,
+              multiplier: 1,
+              name: "長住專案",
+              description: "滿 30 晚・專屬報價",
+              requiresManualQuote: true,
+            };
+          }
+
           return (
             LONG_STAY_TIERS.find((tier) => nights >= tier.minimumNights) || {
               minimumNights: 0,
               multiplier: 1,
               name: "無折扣",
               description: "未達 7 晚",
+              requiresManualQuote: false,
             }
           );
         }
@@ -2603,6 +2620,7 @@
           const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
           const staySubtotal = nightlyRate * nights;
           const longStayTier = getLongStayTier(nights);
+          const requiresManualQuote = Boolean(longStayTier.requiresManualQuote);
           const discountRate = 1 - longStayTier.multiplier;
           const discountedStaySubtotal = Math.round(staySubtotal * longStayTier.multiplier);
           const discountAmount = staySubtotal - discountedStaySubtotal;
@@ -2642,6 +2660,7 @@
             discountMultiplier: longStayTier.multiplier,
             discountName: longStayTier.name,
             discountDescription: longStayTier.description,
+            requiresManualQuote,
             discountAmount,
             discountedStaySubtotal,
             daycareFee,
@@ -2698,6 +2717,7 @@
           const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
 
           currentQuote = null;
+          output.totalLabel.textContent = "預估總額";
           output.totalAmount.textContent = "NT$0";
           output.staySummary.textContent = roomSelection.roomCount
             ? "請確認預計住宿日期"
@@ -2729,7 +2749,10 @@
           currentQuote = quote;
           const spansDifferentYears = quote.checkIn.slice(0, 4) !== quote.checkOut.slice(0, 4);
 
-          output.totalAmount.textContent = formatMoney(quote.total);
+          output.totalLabel.textContent = quote.requiresManualQuote ? "長住專案" : "預估總額";
+          output.totalAmount.textContent = quote.requiresManualQuote
+            ? "請洽詢"
+            : formatMoney(quote.total);
           output.staySummary.textContent = `${quote.roomSummary}・${quote.cats} 貓・${formatDate(
             quote.checkIn,
             spansDifferentYears,
@@ -2743,34 +2766,48 @@
           output.staySubtotal.textContent = formatMoney(quote.staySubtotal);
           output.discountLabel.textContent =
             quote.discountDescription;
-          output.discountAmount.textContent = quote.discountAmount
-            ? `−${formatMoney(quote.discountAmount)}`
-            : "NT$0";
-          output.discountedStayLabel.textContent = quote.discountRate
-            ? `已套用 ${quote.discountName}`
-            : "未套用折扣";
-          output.discountedStaySubtotal.textContent = formatMoney(quote.discountedStaySubtotal);
-          output.discountBadge.hidden = !quote.discountRate;
-          output.discountBadge.textContent = quote.discountRate
-            ? `✓ 已自動套用 ${quote.discountName}長住優惠`
-            : "";
+          output.discountAmount.textContent = quote.requiresManualQuote
+            ? "請洽詢"
+            : quote.discountAmount
+              ? `−${formatMoney(quote.discountAmount)}`
+              : "NT$0";
+          output.discountedStayLabel.textContent = quote.requiresManualQuote
+            ? "系統不呈現專案折扣"
+            : quote.discountRate
+              ? `已套用 ${quote.discountName}`
+              : "未套用折扣";
+          output.discountedStaySubtotal.textContent = quote.requiresManualQuote
+            ? "專屬報價"
+            : formatMoney(quote.discountedStaySubtotal);
+          output.discountBadge.hidden = !quote.discountRate && !quote.requiresManualQuote;
+          output.discountBadge.textContent = quote.requiresManualQuote
+            ? "長住專案・請洽詢專屬報價"
+            : quote.discountRate
+              ? `✓ 已自動套用 ${quote.discountName}長住優惠`
+              : "";
           output.daycareLabel.textContent = quote.isLate
             ? `${formatMoney(quote.nightlyRate)} × 50%`
             : "15:00（含）前退宿";
           output.daycareFee.textContent = formatMoney(quote.daycareFee);
           output.mealLabel.textContent = describeMeal(quote);
           output.mealFee.textContent = formatMoney(quote.mealSubtotal);
-          const discountText = quote.discountRate
+          const discountText = quote.discountRate && !quote.requiresManualQuote
             ? ` × ${quote.discountMultiplier}＝${formatMoney(
                 quote.discountedStaySubtotal,
               )}`
             : "";
-          const feeParts = [`住宿費 ${formatMoney(quote.staySubtotal)}${discountText}`];
+          const feeParts = [
+            `${quote.requiresManualQuote ? "未套用專案折扣的住宿費" : "住宿費"} ${formatMoney(
+              quote.staySubtotal,
+            )}${discountText}`,
+          ];
           if (quote.isLate) feeParts.push(`超時安親費 ${formatMoney(quote.daycareFee)}`);
           if (quote.mealSubtotal) {
             feeParts.push(`${describeMeal(quote)} ${formatMoney(quote.mealSubtotal)}`);
           }
-          output.formulaNote.textContent = `${feeParts.join("，")}。長住折扣僅適用住宿費。`;
+          output.formulaNote.textContent = quote.requiresManualQuote
+            ? `${feeParts.join("，")}。實際總額以貓家人員提供的專屬報價為準。`
+            : `${feeParts.join("，")}。長住折扣僅適用住宿費。`;
 
           startReservationButton.disabled = false;
           setDateError();
@@ -2880,7 +2917,9 @@
           )}–${formatDateForQuote(quote.checkOut)}・${quote.nights} 晚`;
           output.reservationCats.textContent = `${quote.cats} 隻`;
           output.reservationMeal.textContent = describeMeal(quote);
-          output.reservationTotal.textContent = formatMoney(quote.total);
+          output.reservationTotal.textContent = quote.requiresManualQuote
+            ? "長住專案・請洽詢"
+            : formatMoney(quote.total);
 
           if (quote.isLate) {
             departureTimeInput.min = "15:01";
