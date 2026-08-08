@@ -149,9 +149,9 @@
 
       .flow-progress {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
-        max-width: 560px;
+        max-width: 850px;
         margin: 0 0 22px;
       }
 
@@ -1403,7 +1403,9 @@
         }
 
         .flow-progress {
+          grid-template-columns: 1fr;
           gap: 7px;
+          max-width: none;
         }
 
         .progress-step {
@@ -1517,11 +1519,19 @@
       </header>
 
       <nav class="flow-progress" aria-label="預約進度">
-        <span class="progress-step is-current" id="estimateProgress" data-step="1">
+        <span
+          class="progress-step is-current"
+          id="estimateProgress"
+          data-step="1"
+          aria-current="step"
+        >
           試算住宿費用
         </span>
         <span class="progress-step" id="reservationProgress" data-step="2">
           填寫預約資料
+        </span>
+        <span class="progress-step" id="paymentProgress" data-step="3">
+          訂金付款並確認預約
         </span>
       </nav>
 
@@ -2177,6 +2187,7 @@
         const reservationStep = document.getElementById("reservationStep");
         const estimateProgress = document.getElementById("estimateProgress");
         const reservationProgress = document.getElementById("reservationProgress");
+        const paymentProgress = document.getElementById("paymentProgress");
         const startReservationButton = document.getElementById("startReservation");
         const backToEstimateButton = document.getElementById("backToEstimate");
         const reservationForm = document.getElementById("reservationForm");
@@ -2754,15 +2765,25 @@
           });
         }
 
+        function setProgressState(currentStepIndex) {
+          [estimateProgress, reservationProgress, paymentProgress].forEach((step, index) => {
+            step.classList.toggle("is-current", index === currentStepIndex);
+            step.classList.toggle("is-complete", index < currentStepIndex);
+            if (index === currentStepIndex) {
+              step.setAttribute("aria-current", "step");
+            } else {
+              step.removeAttribute("aria-current");
+            }
+          });
+        }
+
         function showReservationStep() {
           if (!currentQuote) return;
           renderReservationSummary(currentQuote);
           renderCatForms(currentQuote.cats);
           estimateStep.hidden = true;
           reservationStep.hidden = false;
-          estimateProgress.classList.remove("is-current");
-          estimateProgress.classList.add("is-complete");
-          reservationProgress.classList.add("is-current");
+          setProgressState(1);
           reservationStatus.textContent = "";
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -2770,9 +2791,7 @@
         function showEstimateStep() {
           reservationStep.hidden = true;
           estimateStep.hidden = false;
-          reservationProgress.classList.remove("is-current");
-          estimateProgress.classList.remove("is-complete");
-          estimateProgress.classList.add("is-current");
+          setProgressState(0);
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
 
@@ -3000,6 +3019,7 @@
             successReservationId.textContent = reservationId;
             reservationSuccess.hidden = false;
             submitButton.hidden = true;
+            setProgressState(2);
             pendingSubmission = null;
           } catch (error) {
             reservationStatus.textContent =
