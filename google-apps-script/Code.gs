@@ -141,8 +141,8 @@ function saveBooking_(payload) {
 
   const ownerName = requiredText_(owner.name, "飼主姓名", 50);
   const ownerPhone = requiredText_(owner.phone, "聯絡電話", 30);
-  const emergencyName = requiredText_(owner.emergencyName, "緊急聯絡人", 50);
-  const emergencyPhone = requiredText_(owner.emergencyPhone, "緊急聯絡電話", 30);
+  const emergencyName = optionalText_(owner.emergencyName, 50);
+  const emergencyPhone = optionalText_(owner.emergencyPhone, 30);
   const emergencyRelation = optionalText_(owner.emergencyRelation, 30);
   const arrivalTime = requiredTime_(booking.arrivalTime, "入住時間");
   const departureTime = requiredTime_(booking.departureTime, "退宿時間");
@@ -408,6 +408,9 @@ function createCalendarEventTitle_(booking) {
 
 function createCalendarEventDescription_(booking) {
   const quote = booking.quote;
+  const emergencyContact = booking.owner.emergencyName
+    ? `${booking.owner.emergencyName}（${booking.owner.emergencyRelation || "未填關係"}）`
+    : "未填";
   const mealLine = quote.mealPlanKey === "none"
     ? "不加購"
     : quote.mealPlanKey === "canned"
@@ -427,8 +430,8 @@ function createCalendarEventDescription_(booking) {
     "",
     `飼主：${booking.owner.name}`,
     `聯絡電話：${booking.owner.phone}`,
-    `緊急聯絡人：${booking.owner.emergencyName}（${booking.owner.emergencyRelation || "未填關係"}）`,
-    `緊急聯絡電話：${booking.owner.emergencyPhone}`,
+    `緊急聯絡人：${emergencyContact}`,
+    `緊急聯絡電話：${booking.owner.emergencyPhone || "未填"}`,
     "",
     `其他補充：${booking.additionalNotes || "無"}`,
     `查看預約資料表：${EMAIL_CONFIG.spreadsheetUrl}`,
@@ -517,8 +520,8 @@ function createDetailedEmailBody_(booking) {
     "【飼主與緊急聯絡】",
     `飼主姓名：${owner.name}`,
     `聯絡電話：${owner.phone}`,
-    `緊急聯絡人：${owner.emergencyName}`,
-    `緊急聯絡電話：${owner.emergencyPhone}`,
+    `緊急聯絡人：${owner.emergencyName || "未填"}`,
+    `緊急聯絡電話：${owner.emergencyPhone || "未填"}`,
     `與飼主關係：${owner.emergencyRelation || "未填"}`,
     "",
     "【入住貓咪資料】",
@@ -748,8 +751,14 @@ function calculateQuote_(booking) {
   const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
   const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
   const staySubtotal = nightlyRate * nights;
-  const discountMultiplier = nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
-  const discountName = nights >= 14 ? "9 折" : nights >= 7 ? "95 折" : "無折扣";
+  const discountMultiplier = nights >= 30 ? 0.7 : nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
+  const discountName = nights >= 30
+    ? "7 折"
+    : nights >= 14
+      ? "9 折"
+      : nights >= 7
+        ? "95 折"
+        : "無折扣";
   const discountedStaySubtotal = Math.round(staySubtotal * discountMultiplier);
   const discountAmount = staySubtotal - discountedStaySubtotal;
   const daycareFee = isLate ? nightlyRate * DAYCARE_RATE : 0;
