@@ -1379,6 +1379,100 @@
         text-align: center;
       }
 
+      .contract-preview {
+        display: grid;
+        gap: 16px;
+        padding: 20px;
+        border: 1px solid rgba(114, 72, 51, 0.2);
+        border-radius: 14px;
+        background: rgba(255, 253, 249, 0.96);
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .contract-preview-header {
+        display: grid;
+        gap: 6px;
+      }
+
+      .contract-preview-title {
+        margin: 0;
+        color: var(--brand-dark);
+        font-size: 0.95rem;
+      }
+
+      .contract-preview-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.74rem;
+        line-height: 1.65;
+      }
+
+      .contract-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        overflow: hidden;
+        margin: 0;
+        border: 1px solid rgba(114, 72, 51, 0.2);
+        border-radius: 10px;
+        background: rgba(114, 72, 51, 0.16);
+      }
+
+      .contract-summary-row {
+        display: grid;
+        grid-template-columns: 6.2em minmax(0, 1fr);
+        gap: 8px;
+        padding: 10px 12px;
+        background: #fffdf9;
+      }
+
+      .contract-summary-row dt,
+      .contract-summary-row dd {
+        margin: 0;
+        font-size: 0.74rem;
+        line-height: 1.55;
+      }
+
+      .contract-summary-row dt {
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      .contract-summary-row dd {
+        overflow-wrap: anywhere;
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .contract-terms {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .contract-clause {
+        margin: 0;
+        color: var(--ink);
+        font-size: 0.74rem;
+        line-height: 1.75;
+      }
+
+      .contract-clause strong {
+        color: var(--brand-dark);
+      }
+
+      .contract-company {
+        margin: 0;
+        padding-top: 12px;
+        border-top: 1px solid rgba(114, 72, 51, 0.16);
+        color: var(--muted);
+        font-size: 0.71rem;
+        line-height: 1.7;
+      }
+
       .honeypot-field {
         position: absolute !important;
         width: 1px !important;
@@ -1550,7 +1644,8 @@
         .meal-options,
         .form-grid,
         .booking-summary,
-        .reservation-success-gallery {
+        .reservation-success-gallery,
+        .contract-summary {
           grid-template-columns: 1fr;
         }
 
@@ -1600,6 +1695,14 @@
         .line-official-qr img {
           width: 148px;
           height: 148px;
+        }
+
+        .contract-preview {
+          padding: 17px 15px;
+        }
+
+        .contract-summary-row {
+          grid-template-columns: 5.8em minmax(0, 1fr);
         }
       }
 
@@ -2223,7 +2326,12 @@
                   >
                     <div class="payment-details-header">
                       <h5 class="payment-details-title" id="paymentDetailsHeading">匯款帳戶</h5>
-                      <button class="copy-account-button" id="copyPaymentAccount" type="button">
+                      <button
+                        class="copy-account-button"
+                        id="copyPaymentAccount"
+                        type="button"
+                        disabled
+                      >
                         複製帳號
                       </button>
                     </div>
@@ -2239,7 +2347,7 @@
                       <div class="payment-details-row">
                         <dt>帳號</dt>
                         <dd>
-                          <span class="payment-account-number" id="paymentAccountNumber">21072000223851</span>
+                          <span class="payment-account-number" id="paymentAccountNumber">預約送出後顯示</span>
                         </dd>
                       </div>
                       <div class="payment-details-row">
@@ -2266,6 +2374,74 @@
                       <figcaption>住宿須知・點圖可放大</figcaption>
                     </figure>
                   </div>
+                  <section
+                    class="contract-preview"
+                    id="contractPreview"
+                    aria-labelledby="contractPreviewHeading"
+                  >
+                    <div class="contract-preview-header">
+                      <h5 class="contract-preview-title" id="contractPreviewHeading">
+                        貓家日子｜貓咪住宿服務契約（預先審閱）
+                      </h5>
+                      <p class="contract-preview-note">
+                        系統已依本次預約資料產生契約 PDF，並隨新預約通知信寄送給店家。
+                        以下內容供預先審閱；實際權利義務以雙方確認並簽署的版本為準。
+                      </p>
+                    </div>
+                    <dl class="contract-summary">
+                      <div class="contract-summary-row">
+                        <dt>預約編號</dt>
+                        <dd id="contractReservationId">—</dd>
+                      </div>
+                      <div class="contract-summary-row">
+                        <dt>甲方（飼主）</dt>
+                        <dd id="contractOwnerName">—</dd>
+                      </div>
+                      <div class="contract-summary-row">
+                        <dt>寄養期間</dt>
+                        <dd id="contractStayPeriod">—</dd>
+                      </div>
+                      <div class="contract-summary-row">
+                        <dt>住宿房型</dt>
+                        <dd id="contractRoomSummary">—</dd>
+                      </div>
+                      <div class="contract-summary-row">
+                        <dt>貓咪數量</dt>
+                        <dd id="contractCatCount">—</dd>
+                      </div>
+                      <div class="contract-summary-row">
+                        <dt>住宿費用</dt>
+                        <dd id="contractStayFee">—</dd>
+                      </div>
+                    </dl>
+                    <ol class="contract-terms">
+                      <li class="contract-clause">
+                        <strong>第一條　服務內容：</strong>乙方依本契約及甲方提供之照護資料，於上述期間提供住宿、基本餵食、環境清潔與日常觀察。實際房況、入住安排與長住專案金額，仍以乙方確認為準。
+                      </li>
+                      <li class="contract-clause">
+                        <strong>第二條　健康告知與防疫：</strong>甲方應據實告知貓咪之健康、用藥、攻擊或逃脫等情形，並依乙方規範完成疫苗及體內外驅蟲。甲方知悉寄宿環境仍可能存在上呼吸道感染、黴菌、濕疹、寄生蟲等傳染性疾病風險，且疾病可能因潛伏期較長而於退宿後始出現症狀；非因乙方故意或過失所致者，甲方不得據此請求賠償。
+                      </li>
+                      <li class="contract-clause">
+                        <strong>第三條　照護與緊急醫療：</strong>乙方依甲方提供之方式餵食及照護。貓咪如有緊急狀況，乙方得先聯繫甲方或緊急聯絡人；情況急迫而無法聯繫時，得逕送甲方指定醫院，該院未營業時改送吉立動物醫院。就醫、交通及必要處置費用由甲方負擔。
+                      </li>
+                      <li class="contract-clause">
+                        <strong>第四條　預約、取消與提前退宿：</strong>乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。入住後如甲方提前退宿，已支付之住宿費不予退還；入住前解約之手續費依相關法令辦理，最高不超過約定總價百分之五。甲方未依約付款或違反契約，乙方得終止服務。
+                      </li>
+                      <li class="contract-clause">
+                        <strong>第五條　責任範圍：</strong>因貓咪自身疾病、年齡、體質、既有傷病、未據實告知之行為，或其他不可歸責於乙方之事由所生損害，乙方不負賠償責任；如損害可歸責於乙方，仍依法律規定負責。
+                      </li>
+                      <li class="contract-clause">
+                        <strong>第六條　影像分享：</strong>甲方（□同意　□不同意）乙方將寄宿期間之寵物照片分享於貓家日子 Facebook、Instagram 粉絲專頁及其他官方平台，僅作非商業用途。
+                      </li>
+                      <li class="contract-clause">
+                        <strong>第七條　其他：</strong>因天災、戰爭、政府禁令或其他不可抗力致無法履約時，雙方得協議變更或終止。本契約未盡事宜依相關法令辦理；一式二份，雙方各執一份，自簽署日起生效。
+                      </li>
+                    </ol>
+                    <p class="contract-company">
+                      乙方：貓家日子股份有限公司｜統編 00110880｜特寵業字A1140030號<br />
+                      新北市三重區三民街68號｜(02) 6604-0468
+                    </p>
+                  </section>
                 </div>
               </div>
             </section>
@@ -2388,6 +2564,12 @@
         const copyPaymentAccountButton = document.getElementById("copyPaymentAccount");
         const paymentAccountNumber = document.getElementById("paymentAccountNumber");
         const copyPaymentFeedback = document.getElementById("copyPaymentFeedback");
+        const contractReservationId = document.getElementById("contractReservationId");
+        const contractOwnerName = document.getElementById("contractOwnerName");
+        const contractStayPeriod = document.getElementById("contractStayPeriod");
+        const contractRoomSummary = document.getElementById("contractRoomSummary");
+        const contractCatCount = document.getElementById("contractCatCount");
+        const contractStayFee = document.getElementById("contractStayFee");
 
         const output = {
           calculationBadge: document.getElementById("calculationBadge"),
@@ -3180,6 +3362,33 @@
           };
         }
 
+        function renderContractPreview(payload, quote) {
+          contractReservationId.textContent = payload.reservationId;
+          contractOwnerName.textContent = payload.owner.name;
+          contractStayPeriod.textContent =
+            `${formatDate(quote.checkIn, true)} ${payload.booking.arrivalTime} 至 `
+            + `${formatDate(quote.checkOut, true)} ${payload.booking.departureTime}，共 ${quote.nights} 晚`;
+          contractRoomSummary.textContent = quote.roomSummary;
+          contractCatCount.textContent = `${quote.cats} 隻`;
+          contractStayFee.textContent = quote.requiresManualQuote
+            ? `長住專案待專屬報價（折扣前參考總額 ${formatMoney(quote.total)}）`
+            : `住宿費 ${formatMoney(quote.discountedStaySubtotal)}；預估總額 ${formatMoney(quote.total)}`;
+        }
+
+        function renderPaymentAccount(bookingResult) {
+          const accountNumber = String(bookingResult?.paymentAccountNumber || "").replace(/\D/g, "");
+          if (accountNumber.length >= 10) {
+            paymentAccountNumber.textContent = accountNumber;
+            copyPaymentAccountButton.disabled = false;
+            copyPaymentFeedback.textContent = "";
+            return;
+          }
+
+          paymentAccountNumber.textContent = "請透過 LINE 官方帳號確認";
+          copyPaymentAccountButton.disabled = true;
+          copyPaymentFeedback.textContent = "預約已送出；目前無法在此頁讀取帳號，請私訊 @days.cat。";
+        }
+
         async function fetchBookingResponse(payload, timeoutMs) {
           const controller = typeof AbortController === "function"
             ? new AbortController()
@@ -3303,6 +3512,11 @@
 
         async function copyPaymentAccountNumber() {
           const accountNumber = paymentAccountNumber.textContent.replace(/\D/g, "");
+
+          if (!accountNumber) {
+            copyPaymentFeedback.textContent = "請私訊 LINE 官方帳號 @days.cat 確認匯款資料。";
+            return;
+          }
 
           try {
             if (navigator.clipboard?.writeText) {
@@ -3450,11 +3664,13 @@
           try {
             setSubmitting(true, "正在登記預約…");
             reservationStatus.textContent = "正在安全登記預約資料，請勿關閉頁面。";
-            await postBookingPayload(payload);
+            const bookingResult = await postBookingPayload(payload);
 
             reservationStatus.textContent = "預約資料已送出。";
             reservationStatus.classList.add("is-success");
             successReservationId.textContent = reservationId;
+            renderPaymentAccount(bookingResult);
+            renderContractPreview(payload, currentQuote);
             setSubmitted();
             reservationSuccess.hidden = false;
             setProgressState(2);
