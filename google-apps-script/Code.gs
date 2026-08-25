@@ -7,6 +7,8 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
+const RELEASE_ID = "contract-pdf-2026-08-25";
+
 const EMAIL_CONFIG = Object.freeze({
   recipientsProperty: "BOOKING_NOTIFICATION_EMAILS",
   senderName: "貓家日子預約系統",
@@ -85,6 +87,7 @@ function doGet() {
   return jsonResponse_({
     ok: true,
     service: "days-with-cats-booking",
+    release: RELEASE_ID,
     emailNotificationConfigured: Boolean(
       properties.getProperty(EMAIL_CONFIG.recipientsProperty)
     ),
