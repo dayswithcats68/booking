@@ -451,6 +451,20 @@
         font-size: 0.82rem;
       }
 
+      .room-count-control {
+        display: grid;
+        flex: 0 0 auto;
+        gap: 6px;
+        justify-items: end;
+      }
+
+      .room-count-label {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
       .stepper {
         display: grid;
         flex: 0 0 auto;
@@ -513,6 +527,34 @@
       .stepper input::-webkit-inner-spin-button {
         margin: 0;
         appearance: none;
+      }
+
+      .room-stepper {
+        grid-template-columns: 42px 72px 42px;
+      }
+
+      .stepper-value {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 72px;
+        height: 42px;
+        border-right: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .room-stepper .stepper-value input {
+        width: 28px;
+        border: 0;
+        background: transparent;
+      }
+
+      .room-count-unit {
+        margin-left: 2px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 800;
       }
 
       .date-grid {
@@ -1677,6 +1719,27 @@
           width: 100%;
         }
 
+        .room-count-control {
+          width: 100%;
+          justify-items: stretch;
+        }
+
+        .room-count-label {
+          text-align: right;
+        }
+
+        .room-stepper {
+          grid-template-columns: 1fr 82px 1fr;
+        }
+
+        .room-stepper .stepper-value {
+          width: 82px;
+        }
+
+        .room-stepper .stepper-value input {
+          width: 34px;
+        }
+
         .summary-top,
         .summary-body {
           padding-right: 22px;
@@ -1823,20 +1886,26 @@
                   <strong>貓家小貓房</strong>
                   <span>每間最多 3 隻貓</span>
                 </div>
-                <div class="stepper" role="group" aria-label="貓家小貓房數量">
-                  <button type="button" id="decreaseSmallRooms" aria-label="減少一間貓家小貓房">−</button>
-                  <input
-                    id="smallRoomCount"
-                    name="smallRoomCount"
-                    type="number"
-                    value="1"
-                    min="0"
-                    max="10"
-                    step="1"
-                    inputmode="numeric"
-                    aria-label="貓家小貓房數量"
-                  />
-                  <button type="button" id="increaseSmallRooms" aria-label="增加一間貓家小貓房">＋</button>
+                <div class="room-count-control">
+                  <span class="room-count-label">預約間數</span>
+                  <div class="stepper room-stepper" role="group" aria-label="貓家小貓房預約間數">
+                    <button type="button" id="decreaseSmallRooms" aria-label="減少一間貓家小貓房">−</button>
+                    <span class="stepper-value">
+                      <input
+                        id="smallRoomCount"
+                        name="smallRoomCount"
+                        type="number"
+                        value="1"
+                        min="0"
+                        max="10"
+                        step="1"
+                        inputmode="numeric"
+                        aria-label="貓家小貓房預約間數"
+                      />
+                      <span class="room-count-unit" aria-hidden="true">間</span>
+                    </span>
+                    <button type="button" id="increaseSmallRooms" aria-label="增加一間貓家小貓房">＋</button>
+                  </div>
                 </div>
               </div>
 
@@ -1845,20 +1914,26 @@
                   <strong>探險家庭房</strong>
                   <span>每間最多 6 隻貓・最多 1 間</span>
                 </div>
-                <div class="stepper" role="group" aria-label="探險家庭房數量">
-                  <button type="button" id="decreaseFamilyRooms" aria-label="減少一間探險家庭房">−</button>
-                  <input
-                    id="familyRoomCount"
-                    name="familyRoomCount"
-                    type="number"
-                    value="0"
-                    min="0"
-                    max="1"
-                    step="1"
-                    inputmode="numeric"
-                    aria-label="探險家庭房數量"
-                  />
-                  <button type="button" id="increaseFamilyRooms" aria-label="增加一間探險家庭房">＋</button>
+                <div class="room-count-control">
+                  <span class="room-count-label">預約間數</span>
+                  <div class="stepper room-stepper" role="group" aria-label="探險家庭房預約間數">
+                    <button type="button" id="decreaseFamilyRooms" aria-label="減少一間探險家庭房">−</button>
+                    <span class="stepper-value">
+                      <input
+                        id="familyRoomCount"
+                        name="familyRoomCount"
+                        type="number"
+                        value="0"
+                        min="0"
+                        max="1"
+                        step="1"
+                        inputmode="numeric"
+                        aria-label="探險家庭房預約間數"
+                      />
+                      <span class="room-count-unit" aria-hidden="true">間</span>
+                    </span>
+                    <button type="button" id="increaseFamilyRooms" aria-label="增加一間探險家庭房">＋</button>
+                  </div>
                 </div>
               </div>
             </div>
