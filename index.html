@@ -454,15 +454,7 @@
       .room-count-control {
         display: grid;
         flex: 0 0 auto;
-        gap: 6px;
         justify-items: end;
-      }
-
-      .room-count-label {
-        color: var(--muted);
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
       }
 
       .stepper {
@@ -1724,10 +1716,6 @@
           justify-items: stretch;
         }
 
-        .room-count-label {
-          text-align: right;
-        }
-
         .room-stepper {
           grid-template-columns: 1fr 82px 1fr;
         }
@@ -1887,7 +1875,6 @@
                   <span>每間最多 3 隻貓</span>
                 </div>
                 <div class="room-count-control">
-                  <span class="room-count-label">預約間數</span>
                   <div class="stepper room-stepper" role="group" aria-label="貓家小貓房預約間數">
                     <button type="button" id="decreaseSmallRooms" aria-label="減少一間貓家小貓房">−</button>
                     <span class="stepper-value">
@@ -1915,7 +1902,6 @@
                   <span>每間最多 6 隻貓・最多 1 間</span>
                 </div>
                 <div class="room-count-control">
-                  <span class="room-count-label">預約間數</span>
                   <div class="stepper room-stepper" role="group" aria-label="探險家庭房預約間數">
                     <button type="button" id="decreaseFamilyRooms" aria-label="減少一間探險家庭房">−</button>
                     <span class="stepper-value">
