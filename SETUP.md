@@ -5,6 +5,7 @@
 1. 開啟「貓家日子預約資料」Google Sheet。
 2. 選擇「擴充功能 → Apps Script」。
 3. 將 `Code.gs` 的內容替換為本專案 `google-apps-script/Code.gs` 的完整內容並儲存。
+   - 同步替換 `appsscript.json`；新版 manifest 會啟用 Drive v3 進階服務，讓契約 PDF 匯出與暫存文件刪除可正常使用。若專案使用 Apps Script 自動建立的預設 Google Cloud 專案，加入服務後 Drive API 會自動啟用。
 4. 到「專案設定 → 指令碼屬性」新增：
    - `BOOKING_NOTIFICATION_EMAILS`：接收通知的 Email 地址；多個地址以半形逗號分隔。
    - `BOOKING_CALENDAR_ID`：選填；不填時使用 Apps Script 執行帳號的主要 Google Calendar；若填寫，目標日曆必須由該帳號擁有。
