@@ -9,9 +9,9 @@
 3. 填寫飼主與每隻貓咪的飲食、健康及照護資料；緊急聯絡人姓名、電話與關係為選填。
 4. 點選「送出預約資料」。
 5. 完整資料送出後，按鈕改為「預約資料已送出」，頁面自動捲動至訂金匯款帳戶，並顯示預約編號、住宿須知與已帶入本次寄養期間、房型、貓咪數量及住宿費用的契約條款預覽。
-6. Apps Script 依同一筆預約資料產生寄養服務契約 PDF，隨新預約 Email 一併寄給指定的店家人員，並在貓家日子的 Google Calendar 建立一筆「待確認」住宿行程。
+6. Apps Script 將完整預約明細寄給指定的店家人員，並在貓家日子的 Google Calendar 建立一筆「待確認」住宿行程；正式契約由店家人工製作。
 
-Email 會直接包含完整預約明細，包括預約編號與時段、飼主與緊急聯絡資料、房型與伙食方案、完整費用明細、每隻貓咪的飲食／健康／照護資料、其他補充及預約表連結，並附上一份以預約編號命名的寄養服務契約 PDF。產生 PDF 時建立的暫存 Google 文件會在匯出後立即刪除。
+Email 會直接包含完整預約明細，包括預約編號與時段、飼主與緊急聯絡資料、房型與伙食方案、完整費用明細、每隻貓咪的飲食／健康／照護資料、其他補充及預約表連結，不建立文件或附件。
 
 ## 資料結構
 
@@ -19,7 +19,7 @@ Apps Script 應由「貓家日子預約資料」Google Sheet 內的「擴充功�
 
 - `住宿預約`：一筆預約一列，包含飼主、日期、房型、房間數量、伙食方案、加購數量、金額、狀態、Email 通知狀態與 Google Calendar 建立結果。混合預約的房型欄會完整列出各房型與間數；第 35 欄記錄總房數，第 36–37 欄記錄 Calendar 狀態與行程 ID，第 38–45 欄記錄計價版本、平日／春節晚數與小計、訂金金額。
 - `貓咪資料`：每隻貓一列，以預約編號連回住宿預約。
-- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表、產生契約 PDF、寄送含附件的新預約 Email，並以預約編號防止重複建立 Calendar 行程。
+- `google-apps-script/Code.gs`：驗證與重新計算價格、避免重複寫入、寫入兩張工作表、寄送新預約 Email，並以預約編號防止重複建立 Calendar 行程。
 
 ## 已包含的計價規則
 
@@ -53,7 +53,7 @@ window.CAT_STAY_CONFIG = Object.freeze({
 });
 ```
 
-Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。Calendar 預設使用 Apps Script 執行帳號的主要日曆；若要改用該帳號擁有的次要日曆，可在 `BOOKING_CALENDAR_ID` 指令碼屬性填入該日曆 ID。後端會在回報成功前重新讀取行程驗證；找不到舊行程時會補建並更新行程 ID。契約 PDF 會使用 Google 文件與僅限本程式建立檔案的 `drive.file` 權限，並需要外部請求權限呼叫 Google Drive 的 PDF 匯出端點；PDF 產生失敗時，通知信仍會改以無附件寄出。
+Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。Calendar 預設使用 Apps Script 執行帳號的主要日曆；若要改用該帳號擁有的次要日曆，可在 `BOOKING_CALENDAR_ID` 指令碼屬性填入該日曆 ID。後端會在回報成功前重新讀取行程驗證；找不到舊行程時會補建並更新行程 ID。契約由店家依預約資料人工製作，後端不使用 Google 文件或 Drive。
 
 完整匯款帳號必須存放在 Apps Script 的 `PAYMENT_ACCOUNT_NUMBER` 指令碼屬性，不可寫入 GitHub、`config.js` 或 `index.html`。後端只會在預約成功的回應中把帳號交給成功頁；若跨網域備援模式無法讀取回應，成功頁會提示客人改由 LINE 官方帳號確認。
 
@@ -65,5 +65,5 @@ Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOT
 - `config.js`：Apps Script Web App URL
 - `assets/days-with-cats-logo.png`：品牌 Logo
 - `assets/stay-guidelines.png`：預約送出後顯示的住宿須知
-- `google-apps-script/Code.gs`：Google Sheets 收件、契約 PDF 產生與 Email 店家通知後端
-- `google-apps-script/appsscript.json`：Apps Script 專案設定；啟用 Calendar 與 Drive v3 進階服務，並保留最小必要 OAuth 權限
+- `google-apps-script/Code.gs`：Google Sheets 收件、Email 店家通知與 Calendar 行程後端
+- `google-apps-script/appsscript.json`：Apps Script 專案設定；僅啟用 Calendar 進階服務與核心必要權限
