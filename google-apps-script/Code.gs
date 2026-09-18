@@ -7,7 +7,7 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production";
+const RELEASE_ID = "cny-2027-production-r2";
 const PRICING_VERSION = "cny-2027-v1";
 
 const EMAIL_CONFIG = Object.freeze({
@@ -129,6 +129,10 @@ function doGet() {
     emailNotificationConfigured: Boolean(
       properties.getProperty(EMAIL_CONFIG.recipientsProperty)
     ),
+    paymentAccountConfigured: Boolean(getPaymentAccountNumber_()),
+    calendarTarget: properties.getProperty(CALENDAR_CONFIG.calendarIdProperty)
+      ? "configured"
+      : "primary",
     timestamp: new Date().toISOString(),
   });
 }
@@ -244,11 +248,15 @@ function saveBooking_(payload) {
     ).trim();
     if (notificationStatus !== "已寄送") {
       const submittedAt = bookingSheet.getRange(existingRow, 2).getValue() || new Date();
-      notificationStatus = sendEmailNotificationSafely_({
+      const notificationResult = sendEmailNotificationSafely_({
         ...bookingDetails,
         submittedAt,
       });
-      bookingSheet.getRange(existingRow, 25).setValue(notificationStatus);
+      notificationStatus = notificationResult.status;
+      writeEmailNotificationStatus_(
+        bookingSheet.getRange(existingRow, 25),
+        notificationResult
+      );
     }
     const calendarResult = ensureCalendarEventSafely_(
       bookingSheet,
@@ -371,11 +379,15 @@ function saveBooking_(payload) {
   catSheet.getRange(firstCatRow, 4, catRows.length, 2).setNumberFormat("yyyy/mm/dd");
   catSheet.getRange(firstCatRow, 1, catRows.length, catRows[0].length).setWrap(true);
 
-  const notificationStatus = sendEmailNotificationSafely_({
+  const notificationResult = sendEmailNotificationSafely_({
     ...bookingDetails,
     submittedAt,
   });
-  bookingSheet.getRange(bookingRowNumber, 25).setValue(notificationStatus);
+  const notificationStatus = notificationResult.status;
+  writeEmailNotificationStatus_(
+    bookingSheet.getRange(bookingRowNumber, 25),
+    notificationResult
+  );
 
   const calendarResult = ensureCalendarEventSafely_(
     bookingSheet,
@@ -437,25 +449,32 @@ function ensureCalendarEventSafely_(bookingSheet, bookingRowNumber, booking) {
 
   try {
     const storedEventId = String(eventIdRange.getDisplayValue() || "").trim();
-    const eventId = storedEventId || createCalendarEventId_(booking.reservationId);
-    let event = findCalendarEventByReservationId_(booking.reservationId);
+    let event = storedEventId ? getCalendarEventById_(storedEventId) : null;
+    if (!event) event = findCalendarEventByReservationId_(booking.reservationId);
 
     if (!event) {
       try {
-        event = createCalendarEvent_(eventId, booking);
+        event = createCalendarEvent_(booking);
       } catch (error) {
         event = findCalendarEventByReservationId_(booking.reservationId);
         if (!event) throw error;
       }
     }
 
+    event = getCalendarEventById_(event.id)
+      || findCalendarEventByReservationId_(booking.reservationId);
+    if (!event) throw new Error("Google Calendar 行程建立後無法驗證");
+
     statusRange.setValue("已建立");
+    statusRange.setNote("");
     eventIdRange.setValue(event.id);
     return { status: "已建立", eventId: event.id };
   } catch (error) {
     console.error(error);
     try {
       statusRange.setValue("建立失敗");
+      statusRange.setNote(`建立失敗：${getErrorMessage_(error)}`);
+      eventIdRange.clearContent();
     } catch (statusError) {
       console.error(statusError);
     }
@@ -470,15 +489,14 @@ function getBookingCalendarId_() {
   ).trim() || CALENDAR_CONFIG.defaultCalendarId;
 }
 
-function createCalendarEventId_(reservationId) {
-  const digest = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    reservationId,
-    Utilities.Charset.UTF_8
-  );
-  return `c${digest
-    .map((byte) => (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, "0"))
-    .join("")}`;
+function getCalendarEventById_(eventId) {
+  try {
+    const event = Calendar.Events.get(getBookingCalendarId_(), eventId);
+    return event && event.status !== "cancelled" ? event : null;
+  } catch (error) {
+    if (/\b404\b|not found/i.test(getErrorMessage_(error))) return null;
+    throw error;
+  }
 }
 
 function findCalendarEventByReservationId_(reservationId) {
@@ -490,10 +508,9 @@ function findCalendarEventByReservationId_(reservationId) {
   return result.items && result.items.length ? result.items[0] : null;
 }
 
-function createCalendarEvent_(eventId, booking) {
+function createCalendarEvent_(booking) {
   return Calendar.Events.insert(
     {
-      id: eventId,
       summary: createCalendarEventTitle_(booking),
       description: createCalendarEventDescription_(booking),
       start: {
@@ -565,7 +582,10 @@ function sendEmailNotificationSafely_(booking) {
     const recipients = getNotificationEmails_();
     if (!recipients.length) {
       console.warn("Email notification is not configured");
-      return "寄送失敗";
+      return {
+        status: "寄送失敗",
+        note: "寄送失敗：尚未設定通知收件地址",
+      };
     }
 
     const subject = [
@@ -573,24 +593,51 @@ function sendEmailNotificationSafely_(booking) {
       `${booking.quote.checkIn}–${booking.quote.checkOut}`,
       `${booking.quote.roomCount} 間・${booking.quote.cats} 隻貓`,
     ].join("｜");
-    const body = createDetailedEmailBody_(booking);
-    const contractPdf = createContractPdf_(booking);
+    let contractPdf = null;
+    let contractError = null;
+    try {
+      contractPdf = createContractPdf_(booking);
+    } catch (error) {
+      contractError = error;
+      console.error(error);
+    }
 
-    MailApp.sendEmail({
+    const message = {
       to: recipients.join(","),
       subject,
-      body,
+      body: createDetailedEmailBody_(booking, Boolean(contractPdf)),
       name: EMAIL_CONFIG.senderName,
-      attachments: [contractPdf],
-    });
-    return "已寄送";
+    };
+    if (contractPdf) message.attachments = [contractPdf];
+    MailApp.sendEmail(message);
+    return {
+      status: "已寄送",
+      note: contractError
+        ? `已寄送（契約 PDF 失敗，改以無附件寄出）：${getErrorMessage_(contractError)}`
+        : "",
+    };
   } catch (error) {
     console.error(error);
-    return "寄送失敗";
+    return {
+      status: "寄送失敗",
+      note: `寄送失敗：${getErrorMessage_(error)}`,
+    };
   }
 }
 
-function createDetailedEmailBody_(booking) {
+function writeEmailNotificationStatus_(range, result) {
+  range.setValue(result.status);
+  range.setNote(result.note || "");
+}
+
+function getErrorMessage_(error) {
+  return String(error && error.message ? error.message : error || "未知錯誤")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
+}
+
+function createDetailedEmailBody_(booking, contractAttached = true) {
   const quote = booking.quote;
   const owner = booking.owner;
   const discountLine = quote.requiresManualQuote
@@ -619,7 +666,9 @@ function createDetailedEmailBody_(booking) {
 
   return [
     "貓家日子收到一筆新的住宿預約。",
-    "本信已附上依預約資料產生的貓咪住宿服務契約 PDF，供店家核對與後續簽署使用。",
+    contractAttached
+      ? "本信已附上依預約資料產生的貓咪住宿服務契約 PDF，供店家核對與後續簽署使用。"
+      : "【系統提醒】本次契約 PDF 未能產生；預約通知仍已寄出，請至試算表核對完整資料。",
     "",
     "【預約資訊】",
     `預約編號：${booking.reservationId}`,
