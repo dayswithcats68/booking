@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const seasonalSource = fs.readFileSync(path.join(root, "seasonal-pricing.js"), "utf8");
+const seasonalCss = fs.readFileSync(path.join(root, "seasonal.css"), "utf8");
 const seasonal = require(path.join(root, "seasonal-pricing.js"));
 
 new vm.Script(seasonalSource, { filename: "seasonal-pricing.js" });
@@ -90,6 +91,9 @@ assert.match(html, />平日每晚</);
 assert.match(html, />春節每晚</);
 assert.match(html, /退宿日落在 2\/3–2\/11，不提供臨時安親或延後退宿/);
 assert.match(html, /if \(!Number\.isFinite\(numericAmount\)\) return "金額待確認"/);
+assert.match(seasonalCss, /grid-template-columns:minmax\(0,1fr\) 116px/);
+assert.match(seasonalCss, /\.choice-card \.choice-card-media \{[\s\S]*?width:100%;[\s\S]*?margin:0;/);
+assert.match(seasonalCss, /@media\(max-width:340px\)/);
 assert.doesNotMatch(html, /<meta\s+name=["']robots["'][^>]*noindex/i);
 assert.doesNotMatch(html, /測試版|預覽版本|測試環境/);
 
