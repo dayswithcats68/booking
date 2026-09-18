@@ -16,7 +16,7 @@
    - 執行身分：我
    - 誰可以存取：任何人
 8. 完成授權並部署。沿用原本以 `/exec` 結尾的網址即可。
-9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r3"`、`"pricingVersion":"cny-2027-v1"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若指定次要日曆，另確認 `"calendarTarget":"configured"`，再發布 GitHub Pages 前端。
+9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r4"`、`"pricingVersion":"cny-2027-v1"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若指定次要日曆，另確認 `"calendarTarget":"configured"`，再發布 GitHub Pages 前端。
 
 請勿把實際收件地址貼到 `config.js`、GitHub 或任何前端檔案。原本的 `LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_NOTIFICATION_TO` 已不再使用，可以從指令碼屬性刪除。
 
@@ -74,4 +74,4 @@ Calendar 行程 ID 由 Google 產生。重送時後端會先用已儲存的行�
 14. 確認 2027/2/3–2/11 為春節計價晚，小貓房／眺跳家庭房／探險家庭房每晚起價分別為 NT$1,300／1,650／1,950，加貓每隻每晚 NT$200。
 15. 確認含春節計價晚的住宿至少需 5 晚；春節晚不折扣，跨檔期的平日晚數獨立套用 7–13 晚 95 折、14–29 晚 9 折。
 16. 確認春節訂金為住宿費 50%，店家確認後 3 日內支付；取消退款區間包含 2026/12/31、2027/1/23 與 2027/1/24 當日。
-17. 確認春節住宿及退宿日落在春節檔期時，無法選擇 15:00 後退宿。
+17. 確認只有退宿日落在 2027/2/3–2/11 時無法選擇 15:00 後退宿；住宿包含春節晚、但退宿日在 2/12 之後時，仍可依一般規則選擇超時安親。

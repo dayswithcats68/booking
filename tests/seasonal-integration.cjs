@@ -40,6 +40,38 @@ assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-08" }).meetsMinim
 assert.equal(quote({ checkIn: "2027-02-11", checkOut: "2027-02-12" }).holidayNights, 1);
 assert.equal(quote({ checkIn: "2027-02-12", checkOut: "2027-02-13" }).holidayNights, 0);
 
+const lateAfterHoliday = quote({
+  cats: 2,
+  checkIn: "2027-02-01",
+  checkOut: "2027-02-18",
+  isLate: true,
+});
+assert.equal(lateAfterHoliday.extraCatFeePerNight, 200);
+assert.equal(lateAfterHoliday.regularNightlyRate, 1050);
+assert.equal(lateAfterHoliday.lateCheckoutUnavailable, false);
+assert.equal(lateAfterHoliday.isLate, true);
+assert.equal(lateAfterHoliday.daycareFee, 525);
+assert.equal(lateAfterHoliday.total, 22005);
+
+const lateOnFebruary12 = quote({
+  checkIn: "2027-02-07",
+  checkOut: "2027-02-12",
+  isLate: true,
+});
+assert.equal(lateOnFebruary12.checkoutDuringHoliday, false);
+assert.equal(lateOnFebruary12.lateCheckoutUnavailable, false);
+assert.equal(lateOnFebruary12.isLate, true);
+
+const lateDuringHoliday = quote({
+  checkIn: "2027-02-06",
+  checkOut: "2027-02-11",
+  isLate: true,
+});
+assert.equal(lateDuringHoliday.checkoutDuringHoliday, true);
+assert.equal(lateDuringHoliday.lateCheckoutUnavailable, true);
+assert.equal(lateDuringHoliday.isLate, false);
+assert.equal(lateDuringHoliday.daycareFee, 0);
+
 const mixed = quote({ checkIn: "2027-01-27", checkOut: "2027-02-08" });
 assert.equal(mixed.regularNights, 7);
 assert.equal(mixed.holidayNights, 5);
@@ -56,6 +88,8 @@ assert.match(html, />住宿明細</);
 assert.doesNotMatch(html, /住宿分段明細/);
 assert.match(html, />平日每晚</);
 assert.match(html, />春節每晚</);
+assert.match(html, /退宿日落在 2\/3–2\/11，不提供臨時安親或延後退宿/);
+assert.match(html, /if \(!Number\.isFinite\(numericAmount\)\) return "金額待確認"/);
 assert.doesNotMatch(html, /<meta\s+name=["']robots["'][^>]*noindex/i);
 assert.doesNotMatch(html, /測試版|預覽版本|測試環境/);
 

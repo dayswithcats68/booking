@@ -7,7 +7,7 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r3";
+const RELEASE_ID = "cny-2027-production-r4";
 const PRICING_VERSION = "cny-2027-v1";
 const REGULAR_DEPOSIT = 500;
 
@@ -961,7 +961,7 @@ function calculateQuote_(booking) {
   const hasHoliday = periods.holidayNights > 0;
   const checkoutDuringHoliday = checkOut >= SEASONAL_CONFIG.start
     && checkOut <= SEASONAL_CONFIG.lastNight;
-  const lateCheckoutUnavailable = hasHoliday || checkoutDuringHoliday;
+  const lateCheckoutUnavailable = checkoutDuringHoliday;
   const clientPricingVersion = optionalText_(booking.pricingVersion, 40);
 
   if (hasHoliday && clientPricingVersion !== PRICING_VERSION) {
@@ -971,7 +971,7 @@ function calculateQuote_(booking) {
     throw new Error(`春節住宿至少需包含 ${SEASONAL_CONFIG.minimumHolidayNights} 個春節計價晚`);
   }
   if (isLate && lateCheckoutUnavailable) {
-    throw new Error("春節檔期恕不提供延長退宿時間");
+    throw new Error("退宿日落在春節檔期，恕不提供延長退宿時間");
   }
 
   const regularNightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
