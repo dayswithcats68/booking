@@ -50,6 +50,7 @@ Apps Script 應由「貓家日子預約資料」Google Sheet 內的「擴充功�
 ```js
 window.CAT_STAY_CONFIG = Object.freeze({
   bookingEndpoint: "https://script.google.com/macros/s/DEPLOYMENT_ID/exec",
+  turnstileSiteKey: "", // 啟用 Cloudflare Turnstile 時填入公開 site key
 });
 ```
 
@@ -58,6 +59,10 @@ Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOT
 完整匯款帳號必須存放在 Apps Script 的 `PAYMENT_ACCOUNT_NUMBER` 指令碼屬性，不可寫入 GitHub、`config.js` 或 `index.html`。後端只會在預約成功的回應中把帳號交給成功頁；若跨網域備援模式無法讀取回應，成功頁會提示客人改由 LINE 官方帳號確認。
 
 正式發佈時必須先部署 Apps Script，再合併 GitHub Pages 前端。Apps Script 的 GET 健康檢查會回報發佈代號、計價版本、Email 與匯款帳號是否完成設定，以及 Calendar 使用主要或指定日曆；它不會建立預約、寄信或新增 Calendar 行程。
+
+r5 安全更新是一次例外：先發布 GitHub Pages 前端，確認它已產生新版高熵預約編號，再部署 Apps Script r5，避免尚未更新的前端被新版編號驗證擋下。後端只接受 `createBooking`、限制請求大小，並重新驗證日期、電話、貓咪選項與所有計價資料；Email 狀態不再接受前端指定。
+
+Cloudflare Turnstile 為選配但建議啟用。未設定時不會載入第三方程式或影響目前預約；設定後只在客人進入資料填寫步驟時載入，後端會核對 token、用途與允許網域。公開 site key 放在 `config.js`，secret key 只能放在 Apps Script 指令碼屬性，詳細順序見 [`SETUP.md`](SETUP.md)。
 
 ## 檔案
 

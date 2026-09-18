@@ -1,15 +1,26 @@
 const CONFIG = Object.freeze({
   spreadsheetIdProperty: "BOOKING_SPREADSHEET_ID",
   paymentAccountNumberProperty: "PAYMENT_ACCOUNT_NUMBER",
+  turnstileSecretProperty: "TURNSTILE_SECRET_KEY",
+  turnstileHostnamesProperty: "TURNSTILE_ALLOWED_HOSTNAMES",
   bookingSheet: "住宿預約",
   catSheet: "貓咪資料",
   timezone: "Asia/Taipei",
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r4";
+const RELEASE_ID = "cny-2027-production-r5";
 const PRICING_VERSION = "cny-2027-v1";
 const REGULAR_DEPOSIT = 500;
+const CREATE_BOOKING_ACTION = "createBooking";
+const MAX_REQUEST_BYTES = 64 * 1024;
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const TURNSTILE_ACTION = "booking_submit";
+const RESERVATION_ID_PATTERN = /^DWC-\d{8}-\d{6}-[0-9A-F]{32}$/;
+const PHONE_PATTERN = /^(?=(?:\D*\d){8,15}\D*$)\+?[0-9() -]{8,20}$/;
+const CAT_SEX_OPTIONS = Object.freeze(["公", "母", "不確定"]);
+const CAT_NEUTERED_OPTIONS = Object.freeze(["已結紮", "未結紮"]);
+const CAT_LITTER_OPTIONS = Object.freeze(["礦砂", "豆腐砂", "其他"]);
 
 const EMAIL_CONFIG = Object.freeze({
   recipientsProperty: "BOOKING_NOTIFICATION_EMAILS",
@@ -83,7 +94,6 @@ const MAX_CANS_PER_CAT_PER_DAY = 20;
 const EARLIEST_ARRIVAL_TIME = "10:00";
 const STANDARD_CHECKOUT_TIME = "15:00";
 const LATEST_DEPARTURE_TIME = "20:30";
-const ALLOWED_EMAIL_STATUSES = Object.freeze(["準備寄送", "已寄送", "寄送失敗"]);
 const MEAL_HEADERS = Object.freeze([
   "伙食方案",
   "每貓每日罐數",
@@ -120,6 +130,9 @@ function doGet() {
       properties.getProperty(EMAIL_CONFIG.recipientsProperty)
     ),
     paymentAccountConfigured: Boolean(getPaymentAccountNumber_()),
+    botProtectionConfigured: Boolean(
+      getTurnstileSecret_() && getTurnstileAllowedHostnames_().length
+    ),
     calendarTarget: properties.getProperty(CALENDAR_CONFIG.calendarIdProperty)
       ? "configured"
       : "primary",
@@ -139,14 +152,14 @@ function authorizeCalendar() {
 }
 
 function doPost(event) {
-  const lock = LockService.getScriptLock();
+  let lock = null;
 
   try {
-    lock.waitLock(15000);
     const payload = parsePayload_(event);
-    const result = payload.action === "updateEmailStatus"
-      ? updateEmailStatus_(payload)
-      : saveBooking_(payload);
+    verifyTurnstile_(payload.turnstileToken);
+    lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+    const result = saveBooking_(payload);
     return jsonResponse_({ ok: true, ...result });
   } catch (error) {
     console.error(error);
@@ -155,13 +168,19 @@ function doPost(event) {
       error: error && error.message ? error.message : "無法處理預約資料",
     });
   } finally {
-    if (lock.hasLock()) lock.releaseLock();
+    if (lock && lock.hasLock()) lock.releaseLock();
   }
 }
 
 function parsePayload_(event) {
   if (!event || !event.postData || !event.postData.contents) {
     throw new Error("缺少預約資料");
+  }
+
+  const contentLength = Number(event.postData.length || event.contentLength || 0);
+  const measuredLength = Utilities.newBlob(event.postData.contents).getBytes().length;
+  if (Math.max(contentLength, measuredLength) > MAX_REQUEST_BYTES) {
+    throw new Error("預約資料內容過長");
   }
 
   let payload;
@@ -176,20 +195,91 @@ function parsePayload_(event) {
   }
 
   if (payload.website) throw new Error("無法接受此筆資料");
+  if (payload.action !== CREATE_BOOKING_ACTION) {
+    throw new Error("預約動作不正確");
+  }
   return payload;
 }
 
+function verifyTurnstile_(tokenValue) {
+  const secret = getTurnstileSecret_();
+  if (!secret) return;
+
+  const token = optionalText_(tokenValue, 2048);
+  if (!token) throw new Error("請先完成人機驗證");
+
+  const allowedHostnames = getTurnstileAllowedHostnames_();
+  if (!allowedHostnames.length) {
+    throw new Error("人機驗證尚未完成設定");
+  }
+
+  let response;
+  let result;
+  try {
+    response = UrlFetchApp.fetch(TURNSTILE_VERIFY_URL, {
+      method: "post",
+      contentType: "application/x-www-form-urlencoded",
+      payload: {
+        secret,
+        response: token,
+      },
+      muteHttpExceptions: true,
+    });
+    result = JSON.parse(response.getContentText());
+  } catch (error) {
+    console.error("Turnstile verification request failed");
+    throw new Error("人機驗證服務暫時無法使用，請稍後再試");
+  }
+
+  const hostname = String(result && result.hostname || "").trim().toLowerCase();
+  if (
+    response.getResponseCode() !== 200
+    || !result
+    || result.success !== true
+    || result.action !== TURNSTILE_ACTION
+    || !allowedHostnames.includes(hostname)
+  ) {
+    throw new Error("人機驗證失敗，請重新驗證後再送出");
+  }
+}
+
+function getTurnstileSecret_() {
+  return String(
+    PropertiesService
+      .getScriptProperties()
+      .getProperty(CONFIG.turnstileSecretProperty) || ""
+  ).trim();
+}
+
+function getTurnstileAllowedHostnames_() {
+  const rawHostnames = String(
+    PropertiesService
+      .getScriptProperties()
+      .getProperty(CONFIG.turnstileHostnamesProperty) || ""
+  );
+  return [...new Set(
+    rawHostnames
+      .split(/[\s,;]+/)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean)
+  )];
+}
+
 function saveBooking_(payload) {
-  const reservationId = requiredText_(payload.reservationId, "預約編號", 80);
+  const reservationId = requiredReservationId_(payload.reservationId);
   const owner = payload.owner || {};
   const booking = payload.booking || {};
   const cats = Array.isArray(payload.cats) ? payload.cats : [];
 
-  const ownerName = requiredText_(owner.name, "飼主姓名", 50);
-  const ownerPhone = requiredText_(owner.phone, "聯絡電話", 30);
-  const emergencyName = optionalText_(owner.emergencyName, 50);
-  const emergencyPhone = optionalText_(owner.emergencyPhone, 30);
-  const emergencyRelation = optionalText_(owner.emergencyRelation, 30);
+  const ownerName = requiredSingleLineText_(owner.name, "飼主姓名", 50);
+  const ownerPhone = requiredPhone_(owner.phone, "聯絡電話");
+  const emergencyName = optionalSingleLineText_(owner.emergencyName, "緊急聯絡人姓名", 50);
+  const emergencyPhone = optionalPhone_(owner.emergencyPhone, "緊急聯絡人電話");
+  const emergencyRelation = optionalSingleLineText_(
+    owner.emergencyRelation,
+    "緊急聯絡人關係",
+    30
+  );
   const arrivalTime = requiredTime_(booking.arrivalTime, "入住時間");
   const departureTime = requiredTime_(booking.departureTime, "退宿時間");
   const quote = calculateQuote_(booking);
@@ -265,9 +355,7 @@ function saveBooking_(payload) {
   }
 
   const submittedAt = new Date();
-  const emailStatus = ALLOWED_EMAIL_STATUSES.includes(payload.emailStatus)
-    ? payload.emailStatus
-    : "準備寄送";
+  const emailStatus = "準備寄送";
   const legacyCanned = quote.mealQuantitySource === "legacy" && quote.mealPlanKey === "canned";
   const legacyDailyPlan = quote.mealPlan.quantityType === "days";
   const bookingRow = [
@@ -744,23 +832,6 @@ function formatTaipeiDateTime_(value) {
   return Utilities.formatDate(new Date(value), CONFIG.timezone, "yyyy/MM/dd HH:mm:ss");
 }
 
-function updateEmailStatus_(payload) {
-  const reservationId = requiredText_(payload.reservationId, "預約編號", 80);
-  const emailStatus = requiredText_(payload.emailStatus, "Email 通知狀態", 20);
-  if (!ALLOWED_EMAIL_STATUSES.includes(emailStatus)) {
-    throw new Error("Email 通知狀態不正確");
-  }
-
-  const spreadsheet = getBookingSpreadsheet_();
-  const bookingSheet = spreadsheet.getSheetByName(CONFIG.bookingSheet);
-  if (!bookingSheet) throw new Error("找不到住宿預約工作表");
-
-  const row = findReservationRow_(bookingSheet, reservationId);
-  if (!row) throw new Error("找不到預約編號");
-  bookingSheet.getRange(row, 25).setValue(emailStatus);
-  return { reservationId, emailStatus };
-}
-
 function findReservationRow_(sheet, reservationId) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return 0;
@@ -1087,18 +1158,32 @@ function dateNumber_(isoDate) {
 }
 
 function normalizeCat_(cat, index) {
-  if (!cat || typeof cat !== "object") throw new Error(`第 ${index} 隻貓咪資料不完整`);
+  if (!cat || typeof cat !== "object" || Array.isArray(cat)) {
+    throw new Error(`第 ${index} 隻貓咪資料不完整`);
+  }
   const age = Number(cat.age);
   if (!Number.isFinite(age) || age < 0 || age > 30) {
     throw new Error(`第 ${index} 隻貓咪年齡不正確`);
   }
 
   return {
-    name: requiredText_(cat.name, `第 ${index} 隻貓咪姓名`, 40),
-    sex: requiredText_(cat.sex, `第 ${index} 隻貓咪性別`, 10),
+    name: requiredSingleLineText_(cat.name, `第 ${index} 隻貓咪姓名`, 40),
+    sex: requiredOption_(
+      cat.sex,
+      `第 ${index} 隻貓咪性別`,
+      CAT_SEX_OPTIONS
+    ),
     age,
-    neutered: requiredText_(cat.neutered, `第 ${index} 隻貓咪結紮狀態`, 10),
-    litter: requiredText_(cat.litter, `第 ${index} 隻貓砂種類`, 40),
+    neutered: requiredOption_(
+      cat.neutered,
+      `第 ${index} 隻貓咪結紮狀態`,
+      CAT_NEUTERED_OPTIONS
+    ),
+    litter: requiredOption_(
+      cat.litter,
+      `第 ${index} 隻貓砂種類`,
+      CAT_LITTER_OPTIONS
+    ),
     diet: requiredText_(cat.diet, `第 ${index} 隻飲食資料`, 220),
     health: requiredText_(cat.health, `第 ${index} 隻健康資料`, 220),
     special: requiredText_(cat.special, `第 ${index} 隻特殊需求`, 220),
@@ -1119,7 +1204,12 @@ function parseDate_(value, label) {
 
 function requiredDateText_(value, label) {
   const text = requiredText_(value, label, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00Z`))) {
+  const timestamp = Date.parse(`${text}T00:00:00Z`);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(text)
+    || Number.isNaN(timestamp)
+    || new Date(timestamp).toISOString().slice(0, 10) !== text
+  ) {
     throw new Error(`${label}格式不正確`);
   }
   return text;
@@ -1153,6 +1243,48 @@ function requiredText_(value, label, maxLength) {
   return text;
 }
 
+function requiredSingleLineText_(value, label, maxLength) {
+  const text = requiredText_(value, label, maxLength);
+  if (/[\u0000-\u001F\u007F\u202A-\u202E\u2066-\u2069]/.test(text)) {
+    throw new Error(`${label}格式不正確`);
+  }
+  return text;
+}
+
+function optionalSingleLineText_(value, label, maxLength) {
+  const text = optionalText_(value, maxLength);
+  if (/[\u0000-\u001F\u007F\u202A-\u202E\u2066-\u2069]/.test(text)) {
+    throw new Error(`${label}格式不正確`);
+  }
+  return text;
+}
+
+function requiredReservationId_(value) {
+  const reservationId = requiredSingleLineText_(value, "預約編號", 60);
+  if (!RESERVATION_ID_PATTERN.test(reservationId)) {
+    throw new Error("頁面版本已更新，請重新整理後再送出");
+  }
+  return reservationId;
+}
+
+function requiredPhone_(value, label) {
+  const phone = requiredSingleLineText_(value, label, 20);
+  if (!PHONE_PATTERN.test(phone)) throw new Error(`${label}格式不正確`);
+  return phone;
+}
+
+function optionalPhone_(value, label) {
+  const phone = optionalSingleLineText_(value, label, 20);
+  if (phone && !PHONE_PATTERN.test(phone)) throw new Error(`${label}格式不正確`);
+  return phone;
+}
+
+function requiredOption_(value, label, allowedValues) {
+  const text = requiredSingleLineText_(value, label, 40);
+  if (!allowedValues.includes(text)) throw new Error(`${label}不正確`);
+  return text;
+}
+
 function optionalText_(value, maxLength) {
   const text = String(value == null ? "" : value).trim();
   return text.slice(0, maxLength);
@@ -1160,7 +1292,7 @@ function optionalText_(value, maxLength) {
 
 function safeText_(value) {
   const text = String(value == null ? "" : value);
-  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return /^[\t\r\n ]*[=+\-@]/.test(text) ? `'${text}` : text;
 }
 
 function jsonResponse_(value) {

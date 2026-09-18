@@ -1159,6 +1159,24 @@
         margin-top: 18px;
       }
 
+      .bot-check {
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+
+      .bot-check[hidden] {
+        display: none;
+      }
+
+      .bot-check-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-align: center;
+      }
+
       .privacy-note {
         margin: 0;
         color: var(--muted);
@@ -2474,6 +2492,12 @@
               </label>
 
               <div class="reservation-actions">
+                <div class="bot-check" id="botCheck" hidden>
+                  <div id="turnstileWidget"></div>
+                  <p class="bot-check-note" id="botCheckStatus" aria-live="polite">
+                    正在載入安全驗證…
+                  </p>
+                </div>
                 <button class="primary-button submit-button" id="submitReservation" type="submit">
                   <span id="submitButtonLabel">送出預約資料</span>
                   <span class="button-arrow" aria-hidden="true">→</span>
@@ -2696,6 +2720,10 @@
         const APP_VERSION = "2027 春節住宿";
         const APP_CONFIG = window.CAT_STAY_CONFIG || {};
         const BOOKING_ENDPOINT = String(APP_CONFIG.bookingEndpoint || "").trim();
+        const TURNSTILE_SITE_KEY = String(APP_CONFIG.turnstileSiteKey || "").trim();
+        const TURNSTILE_SCRIPT_URL =
+          "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        const TURNSTILE_ACTION = "booking_submit";
         const SEASON = window.SeasonalPricing.DEFAULT_SEASON;
         const BOOKING_RESPONSE_TIMEOUT_MS = 15000;
         const EXTRA_CAT_RATE = 200;
@@ -2767,6 +2795,9 @@
         const submitButton = document.getElementById("submitReservation");
         const submitButtonLabel = document.getElementById("submitButtonLabel");
         const submitButtonArrow = submitButton.querySelector(".button-arrow");
+        const botCheck = document.getElementById("botCheck");
+        const turnstileWidget = document.getElementById("turnstileWidget");
+        const botCheckStatus = document.getElementById("botCheckStatus");
         const reservationSuccess = document.getElementById("reservationSuccess");
         const successReservationId = document.getElementById("successReservationId");
         const paymentDetails = document.getElementById("paymentDetails");
@@ -2780,6 +2811,10 @@
         const contractCatCount = document.getElementById("contractCatCount");
         const contractStayFee = document.getElementById("contractStayFee");
         const contractCancellationClause = document.getElementById("contractCancellationClause");
+
+        let turnstileLoadPromise = null;
+        let turnstileWidgetId = null;
+        let turnstileToken = "";
 
         const output = {
           calculationBadge: document.getElementById("calculationBadge"),
@@ -2893,14 +2928,79 @@
           })
             .formatToParts(now)
             .reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
-          const randomValues = new Uint16Array(1);
-          if (window.crypto?.getRandomValues) {
+          let suffix;
+          if (window.crypto?.randomUUID) {
+            suffix = window.crypto.randomUUID().replaceAll("-", "").toUpperCase();
+          } else if (window.crypto?.getRandomValues) {
+            const randomValues = new Uint8Array(16);
             window.crypto.getRandomValues(randomValues);
+            suffix = Array.from(
+              randomValues,
+              (value) => value.toString(16).padStart(2, "0"),
+            ).join("").toUpperCase();
           } else {
-            randomValues[0] = Math.floor(Math.random() * 65536);
+            throw new Error("瀏覽器缺少安全功能，請更新瀏覽器後再送出預約。");
           }
-          const suffix = randomValues[0].toString(36).toUpperCase().padStart(4, "0");
           return `DWC-${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}-${suffix}`;
+        }
+
+        function loadTurnstile() {
+          if (window.turnstile) return Promise.resolve(window.turnstile);
+          if (turnstileLoadPromise) return turnstileLoadPromise;
+
+          turnstileLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = TURNSTILE_SCRIPT_URL;
+            script.async = true;
+            script.defer = true;
+            script.addEventListener("load", () => resolve(window.turnstile), { once: true });
+            script.addEventListener("error", () => reject(new Error("安全驗證載入失敗")), {
+              once: true,
+            });
+            document.head.appendChild(script);
+          });
+          return turnstileLoadPromise;
+        }
+
+        async function initializeTurnstile() {
+          if (!TURNSTILE_SITE_KEY || turnstileWidgetId !== null) return;
+          botCheck.hidden = false;
+          botCheckStatus.textContent = "正在載入安全驗證…";
+
+          try {
+            const turnstile = await loadTurnstile();
+            if (!turnstile || turnstileWidgetId !== null) return;
+            turnstileWidgetId = turnstile.render(turnstileWidget, {
+              sitekey: TURNSTILE_SITE_KEY,
+              action: TURNSTILE_ACTION,
+              appearance: "interaction-only",
+              size: "flexible",
+              "response-field": false,
+              callback(token) {
+                turnstileToken = token;
+                botCheckStatus.textContent = "安全驗證完成。";
+              },
+              "expired-callback"() {
+                turnstileToken = "";
+                botCheckStatus.textContent = "安全驗證已逾時，請重新驗證。";
+              },
+              "error-callback"() {
+                turnstileToken = "";
+                botCheckStatus.textContent = "安全驗證暫時無法完成，請稍後再試。";
+              },
+            });
+          } catch (error) {
+            turnstileLoadPromise = null;
+            botCheckStatus.textContent = "安全驗證載入失敗，請重新整理頁面。";
+          }
+        }
+
+        function resetTurnstile() {
+          turnstileToken = "";
+          if (turnstileWidgetId !== null && window.turnstile?.reset) {
+            window.turnstile.reset(turnstileWidgetId);
+            botCheckStatus.textContent = "正在重新驗證…";
+          }
         }
 
         function setSubmitting(isSubmitting, label = "送出預約資料") {
@@ -3544,6 +3644,7 @@
           reservationStep.hidden = false;
           setProgressState(1);
           reservationStatus.textContent = "";
+          initializeTurnstile();
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
 
@@ -3579,7 +3680,7 @@
             action: "createBooking",
             reservationId,
             website: getReservationValue(formData, "website", ""),
-            emailStatus: "準備寄送",
+            turnstileToken,
             owner: {
               name: getReservationValue(formData, "ownerName", ""),
               phone: getReservationValue(formData, "ownerPhone", ""),
@@ -3912,9 +4013,21 @@
             return;
           }
 
-          const reservationId = pendingSubmission?.reservationId || generateReservationId();
+          if (TURNSTILE_SITE_KEY && !turnstileToken) {
+            reservationStatus.textContent = "請先完成安全驗證後再送出。";
+            initializeTurnstile();
+            return;
+          }
+
+          let reservationId;
+          try {
+            reservationId = pendingSubmission?.reservationId || generateReservationId();
+          } catch (error) {
+            reservationStatus.textContent = error?.message || "瀏覽器無法建立安全的預約編號。";
+            return;
+          }
           const payload = createBookingPayload(currentQuote, reservationId);
-          pendingSubmission = { reservationId, payload };
+          pendingSubmission = { reservationId };
 
           try {
             setSubmitting(true, "正在登記預約…");
@@ -3934,8 +4047,10 @@
             reservationSuccess.hidden = false;
             setProgressState(2);
             pendingSubmission = null;
+            resetTurnstile();
             scrollToPaymentDetails();
           } catch (error) {
+            resetTurnstile();
             reservationStatus.textContent = error?.deliveryUnconfirmed
               ? `系統尚未回傳確認。請保留預約編號 ${reservationId}，稍後可用同一編號重試；確認成功前請勿付款。`
               : error?.message || "目前無法登記預約資料，請確認網路連線後再試一次。";

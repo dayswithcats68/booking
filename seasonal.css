@@ -38,4 +38,39 @@
 @media(min-width:1240px) { .room-options { grid-template-columns:repeat(3,minmax(0,1fr)); } .choice-card-title { font-size:14px; } .choice-card-copy { min-height:143px; } }
 @media(max-width:1100px) and (min-width:861px) { .calculator-grid { grid-template-columns:1fr; } .summary-panel { position:static; } .booking-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:720px) { .spring-announcement { padding:26px 22px; border-radius:20px; } .spring-mark { right:-8px; font-size:138px; } }
-@media(max-width:560px) { .room-options { grid-template-columns:1fr; } .choice-card > .choice-card-body { display:grid; grid-template-columns:minmax(0,1fr) 96px; padding:0; } .choice-card .choice-card-copy { padding:14px 12px; } .choice-card .choice-card-media { aspect-ratio:auto; min-height:180px; } .choice-card-media--jump .jump-photo-crop { width:100%; height:auto; aspect-ratio:3/5; } }
+@media(max-width:560px) {
+  .room-options { grid-template-columns:1fr; }
+  .choice-card > .choice-card-body {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 116px;
+    min-height:176px;
+    padding:0;
+  }
+  .choice-card .choice-card-copy { padding:14px 12px; }
+  .choice-card .choice-card-price { margin-top:10px; }
+  .choice-card .rate-amount strong { font-size:20px; }
+  .choice-card .choice-card-media {
+    width:100%;
+    height:100%;
+    min-height:176px;
+    margin:0;
+    aspect-ratio:auto;
+    border-top:0;
+    border-left:1px solid var(--line);
+  }
+  .choice-card-media--jump .jump-photo-crop {
+    width:100%;
+    height:100%;
+    aspect-ratio:auto;
+  }
+}
+@media(max-width:340px) {
+  .choice-card > .choice-card-body { grid-template-columns:1fr; }
+  .choice-card .choice-card-media {
+    height:auto;
+    min-height:0;
+    aspect-ratio:16/9;
+    border-top:1px solid var(--line);
+    border-left:0;
+  }
+}
