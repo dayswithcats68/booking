@@ -345,4 +345,14 @@ for (const scope of [
   assert.ok(manifest.oauthScopes.includes(scope), `Manifest is missing scope: ${scope}`);
 }
 
+const advancedServices = manifest.dependencies?.enabledAdvancedServices || [];
+assert.ok(
+  advancedServices.some(
+    (service) => service.userSymbol === "Drive"
+      && service.version === "v3"
+      && service.serviceId === "drive",
+  ),
+  "Manifest must enable Drive v3 so contract PDF export can reach the Drive API",
+);
+
 console.log("contract smoke tests passed");
