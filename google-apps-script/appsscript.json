@@ -6,6 +6,11 @@
         "userSymbol": "Calendar",
         "version": "v3",
         "serviceId": "calendar"
+      },
+      {
+        "userSymbol": "Drive",
+        "version": "v3",
+        "serviceId": "drive"
       }
     ]
   },
