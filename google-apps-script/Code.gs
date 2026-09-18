@@ -7,7 +7,8 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "contract-pdf-2026-08-25";
+const RELEASE_ID = "cny-2027-production";
+const PRICING_VERSION = "cny-2027-v1";
 
 const EMAIL_CONFIG = Object.freeze({
   recipientsProperty: "BOOKING_NOTIFICATION_EMAILS",
@@ -25,6 +26,24 @@ const CONTRACT_CONFIG = Object.freeze({
   fallbackHospital: "吉立動物醫院",
 });
 
+const SEASONAL_CONFIG = Object.freeze({
+  key: "cny-2027",
+  label: "2027 春節",
+  start: "2027-02-03",
+  lastNight: "2027-02-11",
+  holidayBaseRates: Object.freeze({
+    small: 1300,
+    jump: 1650,
+    family: 1950,
+  }),
+  minimumHolidayNights: 5,
+  depositRate: 0.5,
+  depositDueDays: 3,
+  fullRefundThrough: "2026-12-31",
+  halfRefundThrough: "2027-01-23",
+  noRefundFrom: "2027-01-24",
+});
+
 const CALENDAR_CONFIG = Object.freeze({
   calendarIdProperty: "BOOKING_CALENDAR_ID",
   defaultCalendarId: "primary",
@@ -38,6 +57,13 @@ const ROOM_TYPES = Object.freeze({
     baseRate: 850,
     maxCatsPerRoom: 3,
     maxRooms: 10,
+    legacyMaxCats: 4,
+  },
+  jump: {
+    name: "眺跳家庭房",
+    baseRate: 1100,
+    maxCatsPerRoom: 4,
+    maxRooms: 3,
     legacyMaxCats: 4,
   },
   family: {
@@ -81,6 +107,17 @@ const MEAL_HEADERS = Object.freeze([
 const ROOM_COUNT_COLUMN = 35;
 const ROOM_COUNT_HEADER = "房間數量";
 const CALENDAR_HEADERS = Object.freeze(["Google Calendar 狀態", "Google Calendar 行程 ID"]);
+const PRICING_DETAIL_COLUMN = 38;
+const PRICING_DETAIL_HEADERS = Object.freeze([
+  "計價版本",
+  "平日晚數",
+  "平日每晚",
+  "平日小計",
+  "春節晚數",
+  "春節每晚",
+  "春節小計",
+  "訂金金額",
+]);
 
 function doGet() {
   const properties = PropertiesService.getScriptProperties();
@@ -88,6 +125,7 @@ function doGet() {
     ok: true,
     service: "days-with-cats-booking",
     release: RELEASE_ID,
+    pricingVersion: PRICING_VERSION,
     emailNotificationConfigured: Boolean(
       properties.getProperty(EMAIL_CONFIG.recipientsProperty)
     ),
@@ -179,6 +217,9 @@ function saveBooking_(payload) {
   bookingSheet
     .getRange(1, CALENDAR_CONFIG.statusColumn, 1, CALENDAR_HEADERS.length)
     .setValues([CALENDAR_HEADERS]);
+  bookingSheet
+    .getRange(1, PRICING_DETAIL_COLUMN, 1, PRICING_DETAIL_HEADERS.length)
+    .setValues([PRICING_DETAIL_HEADERS]);
 
   const bookingDetails = {
     reservationId,
@@ -198,6 +239,17 @@ function saveBooking_(payload) {
 
   const existingRow = findReservationRow_(bookingSheet, reservationId);
   if (existingRow) {
+    let notificationStatus = String(
+      bookingSheet.getRange(existingRow, 25).getDisplayValue() || ""
+    ).trim();
+    if (notificationStatus !== "已寄送") {
+      const submittedAt = bookingSheet.getRange(existingRow, 2).getValue() || new Date();
+      notificationStatus = sendEmailNotificationSafely_({
+        ...bookingDetails,
+        submittedAt,
+      });
+      bookingSheet.getRange(existingRow, 25).setValue(notificationStatus);
+    }
     const calendarResult = ensureCalendarEventSafely_(
       bookingSheet,
       existingRow,
@@ -207,8 +259,10 @@ function saveBooking_(payload) {
       reservationId,
       duplicate: true,
       paymentAccountNumber: getPaymentAccountNumber_(),
+      notificationStatus,
       calendarStatus: calendarResult.status,
       calendarEventId: calendarResult.eventId,
+      quote: createPublicQuote_(quote),
     };
   }
 
@@ -277,6 +331,22 @@ function saveBooking_(payload) {
   bookingSheet.getRange(bookingRowNumber, 34).setNumberFormat("#,##0");
   bookingSheet.getRange(bookingRowNumber, ROOM_COUNT_COLUMN).setNumberFormat("#,##0");
   bookingSheet.getRange(bookingRowNumber, 1, 1, bookingRow.length).setWrap(true);
+  const pricingDetailRow = [
+    quote.pricingVersion,
+    quote.regularNights,
+    quote.regularNightlyRate,
+    quote.regularSubtotal,
+    quote.holidayNights,
+    quote.holidayNightlyRate,
+    quote.holidaySubtotal,
+    quote.depositAmount,
+  ];
+  bookingSheet
+    .getRange(bookingRowNumber, PRICING_DETAIL_COLUMN, 1, pricingDetailRow.length)
+    .setValues([pricingDetailRow]);
+  bookingSheet
+    .getRange(bookingRowNumber, PRICING_DETAIL_COLUMN + 1, 1, pricingDetailRow.length - 1)
+    .setNumberFormat("#,##0");
 
   const catRows = normalizedCats.map((cat, index) => [
     safeText_(reservationId),
@@ -320,6 +390,38 @@ function saveBooking_(payload) {
     notificationStatus,
     calendarStatus: calendarResult.status,
     calendarEventId: calendarResult.eventId,
+    quote: createPublicQuote_(quote),
+  };
+}
+
+function createPublicQuote_(quote) {
+  return {
+    pricingVersion: quote.pricingVersion,
+    seasonKey: quote.seasonKey,
+    seasonLabel: quote.seasonLabel,
+    hasHoliday: quote.hasHoliday,
+    roomSummary: quote.roomSummary,
+    roomCount: quote.roomCount,
+    cats: quote.cats,
+    checkIn: quote.checkIn,
+    checkOut: quote.checkOut,
+    nights: quote.nights,
+    regularNights: quote.regularNights,
+    holidayNights: quote.holidayNights,
+    regularNightlyRate: quote.regularNightlyRate,
+    holidayNightlyRate: quote.holidayNightlyRate,
+    regularSubtotal: quote.regularSubtotal,
+    holidaySubtotal: quote.holidaySubtotal,
+    discountName: quote.discountName,
+    discountAmount: quote.discountAmount,
+    discountedStaySubtotal: quote.discountedStaySubtotal,
+    daycareFee: quote.daycareFee,
+    mealSubtotal: quote.mealSubtotal,
+    total: quote.total,
+    depositAmount: quote.depositAmount,
+    depositDueDays: quote.depositDueDays,
+    lateCheckoutUnavailable: quote.lateCheckoutUnavailable,
+    requiresManualQuote: quote.requiresManualQuote,
   };
 }
 
@@ -442,6 +544,8 @@ function createCalendarEventDescription_(booking) {
     `貓咪數量：${quote.cats} 隻`,
     `貓咪姓名：${booking.cats.map((cat) => cat.name).join("、")}`,
     `伙食加購：${mealLine}`,
+    `住宿計價：${createStayPeriodSummary_(quote)}`,
+    `應付訂金：${createDepositSummary_(quote)}`,
     quote.requiresManualQuote
       ? `長住專案：待專屬報價（未套用專案折扣參考 NT$${formatInteger_(quote.total)}）`
       : `預估總額：NT$${formatInteger_(quote.total)}`,
@@ -530,9 +634,9 @@ function createDetailedEmailBody_(booking) {
     `伙食加購：${mealLine}`,
     "",
     "【費用明細】",
-    `房間基本費：NT$${formatInteger_(quote.baseRoomFeePerNight)}／晚（${quote.roomRateFormula}）`,
+    `住宿明細：${createStayPeriodSummary_(quote)}`,
+    `平日房間基本費：NT$${formatInteger_(quote.baseRoomFeePerNight)}／晚（${quote.roomRateFormula}）`,
     `加貓費：NT$${formatInteger_(quote.extraCatFeePerNight)}／晚（${quote.extraCatCount} 隻）`,
-    `單晚房價：NT$${formatInteger_(quote.nightlyRate)}`,
     `住宿原價：NT$${formatInteger_(quote.staySubtotal)}`,
     `長住優惠：${discountLine}`,
     quote.requiresManualQuote
@@ -543,6 +647,7 @@ function createDetailedEmailBody_(booking) {
     quote.requiresManualQuote
       ? `專案折扣前參考總額：NT$${formatInteger_(quote.total)}`
       : `預估總額：NT$${formatInteger_(quote.total)}`,
+    `應付訂金：${createDepositSummary_(quote)}`,
     "",
     "【飼主與緊急聯絡】",
     `飼主姓名：${owner.name}`,
@@ -601,7 +706,7 @@ function createContractPdf_(booking) {
     const detailTable = body.appendTable([
       ["預約編號", booking.reservationId, "寄養期間", `${formatContractDate_(quote.checkIn)} 至 ${formatContractDate_(quote.checkOut)}，共 ${quote.nights} 晚`],
       ["住宿房型", quote.roomSummary, "貓咪數量", `${quote.cats} 隻`],
-      ["住宿費用", feeText, "付款方式", `匯款；訂金 NT$${formatInteger_(CONTRACT_CONFIG.deposit)}`],
+      ["住宿費用", feeText, "付款方式", `匯款；${createDepositSummary_(quote)}`],
     ]);
     detailTable.setBorderWidth(0.75);
     detailTable.getRow(0).getCell(0).setBackgroundColor("#f0e7dc");
@@ -614,7 +719,7 @@ function createContractPdf_(booking) {
     appendContractClause_(body, "第一條　服務內容", "乙方依本契約及甲方提供之照護資料，於上述期間提供住宿、基本餵食、環境清潔與日常觀察。實際房況、入住安排與長住專案金額，仍以乙方確認為準。");
     appendContractClause_(body, "第二條　健康告知與防疫", "甲方應據實告知貓咪之健康、用藥、攻擊或逃脫等情形，並依乙方規範完成疫苗及體內外驅蟲。甲方知悉寄宿環境仍可能存在上呼吸道感染、黴菌、濕疹、寄生蟲等傳染性疾病風險，且疾病可能因潛伏期較長而於退宿後始出現症狀；非因乙方故意或過失所致者，甲方不得據此請求賠償。");
     appendContractClause_(body, "第三條　照護與緊急醫療", `乙方依甲方提供之方式餵食及照護。貓咪如有緊急狀況，乙方得先聯繫甲方或緊急聯絡人；情況急迫而無法聯繫時，得逕送甲方指定醫院，該院未營業時改送${CONTRACT_CONFIG.fallbackHospital}。就醫、交通及必要處置費用由甲方負擔。`);
-    appendContractClause_(body, "第四條　預約、取消與提前退宿", "乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。入住後如甲方提前退宿，已支付之住宿費不予退還；入住前解約之手續費依相關法令辦理，最高不超過約定總價百分之五。甲方未依約付款或違反契約，乙方得終止服務。");
+    appendContractClause_(body, "第四條　預約、取消與提前退宿", createCancellationClause_(quote));
     appendContractClause_(body, "第五條　責任範圍", "因貓咪自身疾病、年齡、體質、既有傷病、未據實告知之行為，或其他不可歸責於乙方之事由所生損害，乙方不負賠償責任；如損害可歸責於乙方，仍依法律規定負責。");
     appendContractClause_(body, "第六條　影像分享", "甲方（□同意　□不同意）乙方將寄宿期間之寵物照片分享於貓家日子 Facebook、Instagram 粉絲專頁及其他官方平台，僅作非商業用途。");
     appendContractClause_(body, "第七條　其他", "因天災、戰爭、政府禁令或其他不可抗力致無法履約時，雙方得協議變更或終止。本契約未盡事宜依相關法令辦理；一式二份，雙方各執一份，自簽署日起生效。");
@@ -667,6 +772,42 @@ function createContractPdf_(booking) {
       console.warn(error);
     }
   }
+}
+
+function createStayPeriodSummary_(quote) {
+  const parts = [];
+  if (quote.regularNights) {
+    parts.push(
+      `平日 NT$${formatInteger_(quote.regularNightlyRate)}／晚 × ${quote.regularNights} 晚`
+    );
+  }
+  if (quote.holidayNights) {
+    parts.push(
+      `春節 NT$${formatInteger_(quote.holidayNightlyRate)}／晚 × ${quote.holidayNights} 晚`
+    );
+  }
+  return parts.join("；");
+}
+
+function createDepositSummary_(quote) {
+  if (quote.depositAmount === null) {
+    return "訂金於長住專案金額確認後另行通知";
+  }
+  return quote.hasHoliday
+    ? `春節訂金 NT$${formatInteger_(quote.depositAmount)}（住宿費 50%，店家確認後 ${quote.depositDueDays} 日內支付）`
+    : `訂金 NT$${formatInteger_(quote.depositAmount)}（${quote.depositDueDays} 日內支付）`;
+}
+
+function createCancellationClause_(quote) {
+  if (quote.hasHoliday) {
+    return [
+      "乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。",
+      "春節訂金為住宿費百分之五十，經乙方確認房況後，甲方應於三日內完成支付；逾期視同放棄保留。",
+      "於 2026 年 12 月 31 日（含）前取消，訂金全額退還；於 2027 年 1 月 1 日至 1 月 23 日（含）取消，退還訂金百分之五十；自 2027 年 1 月 24 日（含）起取消，訂金不予退還。",
+      "入住後如甲方提前退宿，已支付之住宿費及剩餘住宿費不予退還。甲方未依約付款或違反契約，乙方得終止服務。",
+    ].join("");
+  }
+  return "乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。入住後如甲方提前退宿，已支付之住宿費不予退還；入住前解約之手續費依相關法令辦理，最高不超過約定總價百分之五。甲方未依約付款或違反契約，乙方得終止服務。";
 }
 
 function appendContractClause_(body, heading, text) {
@@ -928,20 +1069,61 @@ function calculateQuote_(booking) {
     * (mealQuantityScope === "booking" ? 1 : cats);
   const extraCatCount = Math.max(0, cats - roomSelection.roomCount);
   const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
-  const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
-  const staySubtotal = nightlyRate * nights;
+  const periods = splitSeasonNights_(checkIn, checkOut);
+  const hasHoliday = periods.holidayNights > 0;
+  const checkoutDuringHoliday = checkOut >= SEASONAL_CONFIG.start
+    && checkOut <= SEASONAL_CONFIG.lastNight;
+  const lateCheckoutUnavailable = hasHoliday || checkoutDuringHoliday;
+  const clientPricingVersion = optionalText_(booking.pricingVersion, 40);
+
+  if (hasHoliday && clientPricingVersion !== PRICING_VERSION) {
+    throw new Error("春節價格已更新，請重新整理預約頁面後再送出");
+  }
+  if (hasHoliday && periods.holidayNights < SEASONAL_CONFIG.minimumHolidayNights) {
+    throw new Error(`春節住宿至少需包含 ${SEASONAL_CONFIG.minimumHolidayNights} 個春節計價晚`);
+  }
+  if (isLate && lateCheckoutUnavailable) {
+    throw new Error("春節檔期恕不提供延長退宿時間");
+  }
+
+  const regularNightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
+  const holidayBaseRoomFeePerNight = roomSelection.rooms.reduce(
+    (total, room) => total
+      + room.count * (SEASONAL_CONFIG.holidayBaseRates[room.roomKey] || room.baseRate),
+    0
+  );
+  const holidayNightlyRate = holidayBaseRoomFeePerNight + extraCatFeePerNight;
+  const regularSubtotal = regularNightlyRate * periods.regularNights;
+  const holidaySubtotal = holidayNightlyRate * periods.holidayNights;
+  const staySubtotal = regularSubtotal + holidaySubtotal;
   const requiresManualQuote = nights >= 30;
-  const discountMultiplier = requiresManualQuote ? 1 : nights >= 14 ? 0.9 : nights >= 7 ? 0.95 : 1;
+  const eligibleDiscountNights = hasHoliday ? periods.regularNights : nights;
+  const discountMultiplier = requiresManualQuote
+    ? 1
+    : eligibleDiscountNights >= 14
+      ? 0.9
+      : eligibleDiscountNights >= 7
+        ? 0.95
+        : 1;
   const discountName = requiresManualQuote
     ? "長住專案（待專屬報價）"
-    : nights >= 14
+    : eligibleDiscountNights >= 14
       ? "9 折"
-      : nights >= 7
+      : eligibleDiscountNights >= 7
         ? "95 折"
         : "無折扣";
-  const discountedStaySubtotal = Math.round(staySubtotal * discountMultiplier);
+  const regularAfterDiscount = Math.round(regularSubtotal * discountMultiplier);
+  const discountedStaySubtotal = regularAfterDiscount + holidaySubtotal;
   const discountAmount = staySubtotal - discountedStaySubtotal;
-  const daycareFee = isLate ? nightlyRate * DAYCARE_RATE : 0;
+  const daycareFee = isLate ? regularNightlyRate * DAYCARE_RATE : 0;
+  const depositAmount = hasHoliday
+    ? requiresManualQuote
+      ? null
+      : Math.round(discountedStaySubtotal * SEASONAL_CONFIG.depositRate)
+    : CONTRACT_CONFIG.deposit;
+  const nightlyRate = hasHoliday && !periods.regularNights
+    ? holidayNightlyRate
+    : regularNightlyRate;
 
   return {
     ...roomSelection,
@@ -954,6 +1136,14 @@ function calculateQuote_(booking) {
     checkIn,
     checkOut,
     nights,
+    pricingVersion: PRICING_VERSION,
+    seasonKey: hasHoliday || checkoutDuringHoliday ? SEASONAL_CONFIG.key : "",
+    seasonLabel: hasHoliday || checkoutDuringHoliday ? SEASONAL_CONFIG.label : "",
+    hasHoliday,
+    checkoutDuringHoliday,
+    lateCheckoutUnavailable,
+    regularNights: periods.regularNights,
+    holidayNights: periods.holidayNights,
     cats,
     isLate,
     mealPlan,
@@ -969,6 +1159,11 @@ function calculateQuote_(booking) {
     mealSubtotal,
     extraCatCount,
     extraCatFeePerNight,
+    regularNightlyRate,
+    holidayNightlyRate,
+    regularSubtotal,
+    holidaySubtotal,
+    regularAfterDiscount,
     nightlyRate,
     staySubtotal,
     discountName,
@@ -976,8 +1171,31 @@ function calculateQuote_(booking) {
     discountAmount,
     discountedStaySubtotal,
     daycareFee,
+    depositAmount,
+    depositDueDays: hasHoliday ? SEASONAL_CONFIG.depositDueDays : 7,
     total: discountedStaySubtotal + daycareFee + mealSubtotal,
   };
+}
+
+function splitSeasonNights_(checkIn, checkOut) {
+  const start = dateNumber_(checkIn);
+  const end = dateNumber_(checkOut);
+  const firstHolidayNight = dateNumber_(SEASONAL_CONFIG.start);
+  const lastHolidayNight = dateNumber_(SEASONAL_CONFIG.lastNight);
+  const nights = end - start;
+  const holidayNights = Math.max(
+    0,
+    Math.min(end, lastHolidayNight + 1) - Math.max(start, firstHolidayNight)
+  );
+  return {
+    nights,
+    holidayNights,
+    regularNights: nights - holidayNights,
+  };
+}
+
+function dateNumber_(isoDate) {
+  return Date.parse(`${isoDate}T00:00:00Z`) / 86400000;
 }
 
 function normalizeCat_(cat, index) {
