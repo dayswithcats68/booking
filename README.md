@@ -66,4 +66,4 @@ Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOT
 - `assets/days-with-cats-logo.png`：品牌 Logo
 - `assets/stay-guidelines.png`：預約送出後顯示的住宿須知
 - `google-apps-script/Code.gs`：Google Sheets 收件、契約 PDF 產生與 Email 店家通知後端
-- `google-apps-script/appsscript.json`：Apps Script 專案設定
+- `google-apps-script/appsscript.json`：Apps Script 專案設定；啟用 Calendar 與 Drive v3 進階服務，並保留最小必要 OAuth 權限
