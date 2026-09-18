@@ -1,0 +1,57 @@
+name: Release checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Run pricing and contract tests
+        run: |
+          node tests/seasonal-integration.cjs
+          node tests/contract-smoke.cjs
+          node --check seasonal-pricing.js
+
+      - name: Verify production backend compatibility
+        run: |
+          endpoint="$(node - <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const sandbox = { window: {} };
+          vm.runInNewContext(fs.readFileSync('config.js', 'utf8'), sandbox);
+          process.stdout.write(sandbox.window.CAT_STAY_CONFIG?.bookingEndpoint || '');
+          NODE
+          )"
+
+          case "$endpoint" in
+            https://script.google.com/macros/s/*/exec) ;;
+            *) echo "Invalid production Apps Script endpoint" >&2; exit 1 ;;
+          esac
+
+          curl --fail --silent --show-error --location \
+            --retry 3 --retry-all-errors --max-time 30 \
+            "$endpoint" -o /tmp/backend-health.json
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const health = JSON.parse(fs.readFileSync('/tmp/backend-health.json', 'utf8'));
+          if (health.ok !== true) throw new Error('Production backend health check failed');
+          if (health.release !== 'cny-2027-production') {
+            throw new Error(`Unexpected backend release: ${health.release || 'missing'}`);
+          }
+          if (health.pricingVersion !== 'cny-2027-v1') {
+            throw new Error(`Unexpected pricing version: ${health.pricingVersion || 'missing'}`);
+          }
+          console.log(`Backend ready: ${health.release} / ${health.pricingVersion}`);
+          NODE

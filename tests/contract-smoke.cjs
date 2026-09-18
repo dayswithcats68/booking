@@ -12,6 +12,8 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
+assert.match(code, /const RELEASE_ID = "cny-2027-production";/);
+assert.doesNotMatch(code, /integration-preview/);
 
 class FakeText {
   setBold() { return this; }
@@ -108,6 +110,79 @@ const quote = vm.runInContext(`calculateQuote_({
   isLate: false,
   mealPlanKey: "none"
 })`, context);
+
+const springSmall = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "small", roomCount: 1 }],
+  roomCount: 1,
+  cats: 1,
+  checkIn: "2027-02-03",
+  checkOut: "2027-02-08",
+  isLate: false,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(springSmall.holidayNights, 5);
+assert.equal(springSmall.regularNights, 0);
+assert.equal(springSmall.holidayNightlyRate, 1300);
+assert.equal(springSmall.discountedStaySubtotal, 6500);
+assert.equal(springSmall.depositAmount, 3250);
+assert.equal(springSmall.depositDueDays, 3);
+
+const springJump = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "jump", roomCount: 1 }],
+  roomCount: 1,
+  cats: 4,
+  checkIn: "2027-02-03",
+  checkOut: "2027-02-08",
+  isLate: false,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(springJump.holidayNightlyRate, 2250);
+assert.equal(springJump.total, 11250);
+
+const springFamily = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "family", roomCount: 1 }],
+  roomCount: 1,
+  cats: 6,
+  checkIn: "2027-02-07",
+  checkOut: "2027-02-12",
+  isLate: false,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(springFamily.holidayNights, 5);
+assert.equal(springFamily.holidayNightlyRate, 2950);
+assert.equal(springFamily.total, 14750);
+
+const mixedSpring = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "small", roomCount: 1 }],
+  roomCount: 1,
+  cats: 1,
+  checkIn: "2027-01-27",
+  checkOut: "2027-02-08",
+  isLate: false,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(mixedSpring.regularNights, 7);
+assert.equal(mixedSpring.holidayNights, 5);
+assert.equal(mixedSpring.discountName, "95 折");
+assert.equal(mixedSpring.discountedStaySubtotal, Math.round(850 * 7 * 0.95) + 1300 * 5);
+
+for (const source of [
+  `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-01", checkOut: "2027-02-06", isLate: false, mealPlanKey: "none", pricingVersion: PRICING_VERSION })`,
+  `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-03", checkOut: "2027-02-08", isLate: false, mealPlanKey: "none" })`,
+  `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-03", checkOut: "2027-02-08", isLate: true, mealPlanKey: "none", pricingVersion: PRICING_VERSION })`,
+]) {
+  assert.throws(() => vm.runInContext(source, context));
+}
+
+context.springSmall = springSmall;
+const springCancellation = vm.runInContext("createCancellationClause_(springSmall)", context);
+assert.match(springCancellation, /2026 年 12 月 31 日（含）前/);
+assert.match(springCancellation, /2027 年 1 月 1 日至 1 月 23 日（含）/);
+assert.match(springCancellation, /2027 年 1 月 24 日（含）起/);
 const booking = {
   reservationId: "DWC-20260901-TEST",
   owner: { name: "王小明", phone: "0912-345-678" },

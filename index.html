@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="貓家日子住宿試算與預約：選擇房型、貓咪數量與日期，填寫資料後即可直接送出預約需求。"
+      content="查看 2027 春節價目、試算住宿費並送出預約資料。"
     />
     <meta name="theme-color" content="#f7f1e7" />
     <meta property="og:title" content="貓家日子｜貓咪住宿試算與預約" />
     <meta
       property="og:description"
-      content="快速試算貓咪住宿費用，填寫照護資料並直接送出預約需求。"
+      content="查看春節價目、試算住宿費並送出預約資料。"
     />
     <meta
       property="og:image"
@@ -84,7 +84,7 @@
       }
 
       .page-shell {
-        width: min(1120px, calc(100% - 40px));
+        width: min(1440px, calc(100% - 40px));
         margin: 0 auto;
         padding: 46px 0 54px;
       }
@@ -849,14 +849,6 @@
         background: var(--canvas);
         color: var(--muted);
         font-size: 0.75rem;
-        line-height: 1.65;
-      }
-
-      .long-stay-notice {
-        margin: -7px 2px 17px;
-        color: var(--brand-dark);
-        font-size: 0.75rem;
-        font-weight: 800;
         line-height: 1.65;
       }
 
@@ -1766,6 +1758,7 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="seasonal.css" />
   </head>
 
   <body>
@@ -1786,9 +1779,53 @@
         </div>
         <p class="masthead-note">
           <span class="license-number">特寵業字A1140030號</span>
-          <span>完成費用試算與必要資料後，即可直接送出預約需求。</span>
+          <span>查看春節價目、試算費用並送出預約資料。</span>
         </p>
       </header>
+
+      <section class="spring-announcement" aria-labelledby="springHeading">
+        <span class="spring-mark" aria-hidden="true">春</span>
+        <p class="spring-kicker">2027 LUNAR NEW YEAR · 春節住宿</p>
+        <h2 id="springHeading">把新年假期，安心交給貓家。</h2>
+        <p class="spring-description">
+          春節住宿檔期 <strong id="seasonRange">2027/2/3–2/11</strong>；2/11 為最後一個春節計價晚。
+        </p>
+        <div class="spring-meta">
+          <span>每間基本價含 1 隻貓</span>
+          <span>至少 5 個春節計價晚</span>
+        </div>
+        <details class="spring-price-details" open>
+          <summary>春節每晚價目</summary>
+          <div class="table-scroll">
+            <table class="spring-price-table">
+              <caption>單間每晚，已含加貓費；— 表示超過容量。</caption>
+              <thead>
+                <tr>
+                  <th scope="col">入住貓數</th>
+                  <th scope="col">貓家小貓房</th>
+                  <th scope="col">眺跳家庭房</th>
+                  <th scope="col">探險家庭房</th>
+                </tr>
+              </thead>
+              <tbody id="springPriceRows"></tbody>
+            </table>
+          </div>
+        </details>
+        <details class="spring-price-details">
+          <summary>訂金、最低住宿與取消規則</summary>
+          <div class="policy-copy">
+            <p><strong>預約條件</strong><br />春節至少住 5 個計價晚。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。未滿 5 晚的開放時間另行公告。</p>
+            <p><strong>取消與退款</strong></p>
+            <ul>
+              <li>2026/12/31（含）前取消：訂金全額退款。</li>
+              <li>2027/1/1–1/23（含）取消：退還訂金 50%。</li>
+              <li>2027/1/24（含）起取消：訂金不予退款。</li>
+              <li>入住後提前退宿：不退還剩餘住宿費。</li>
+            </ul>
+            <p>春節計價晚不適用長住折扣、其他優惠或折價券；跨檔期的平日晚數仍依一般規則獨立計算。</p>
+          </div>
+        </details>
+      </section>
 
       <nav class="flow-progress" aria-label="預約進度">
         <span
@@ -1797,13 +1834,13 @@
           data-step="1"
           aria-current="step"
         >
-          試算住宿費用
+          試算費用
         </span>
         <span class="progress-step" id="reservationProgress" data-step="2">
-          填寫預約資料
+          填寫資料
         </span>
         <span class="progress-step" id="paymentProgress" data-step="3">
-          訂金付款並確認預約
+          支付訂金・完成預約
         </span>
       </nav>
 
@@ -1813,9 +1850,9 @@
           <section class="section" aria-labelledby="roomHeading">
             <h2 class="section-heading" id="roomHeading">
               <span class="step-number" aria-hidden="true">1</span>
-              選擇想入住的房型
+              選擇房型
             </h2>
-            <p class="room-selection-note">可同時預訂兩種房型，請在下方調整各房型數量。</p>
+            <p class="room-selection-note">房型可複選，請調整間數。</p>
 
             <fieldset>
               <legend class="visually-hidden">可複選房型</legend>
@@ -1823,14 +1860,23 @@
                 <label class="choice-card">
                   <input id="smallRoomToggle" type="checkbox" value="small" checked />
                   <span class="choice-card-body">
+                    <span class="choice-card-copy">
                     <span class="choice-card-top">
                       <span class="choice-card-title">貓家小貓房<small>每間最多 3 貓</small></span>
                       <span class="choice-check" aria-hidden="true">✓</span>
                     </span>
                     <span class="choice-card-price">
-                      <strong>NT$850</strong><span>／晚起</span>
+                      <span class="rate-line">
+                        <span class="rate-label">平日每晚</span>
+                        <span class="rate-amount"><strong>NT$ 850</strong><span>起</span></span>
+                      </span>
+                      <span class="rate-line spring-card-rate">
+                        <span class="rate-label">春節每晚</span>
+                        <span class="rate-amount"><strong>NT$ 1,300</strong><span>起</span></span>
+                      </span>
                     </span>
-                    <span class="room-photo-frame">
+                    </span>
+                    <span class="room-photo-frame choice-card-media">
                       <img
                         class="room-photo room-photo--small"
                         src="assets/small-cat-room.jpg"
@@ -1844,16 +1890,59 @@
                 </label>
 
                 <label class="choice-card">
+                  <input id="jumpRoomToggle" type="checkbox" value="jump" />
+                  <span class="choice-card-body">
+                    <span class="choice-card-copy">
+                      <span class="choice-card-top">
+                        <span class="choice-card-title">眺跳家庭房<small>每間最多 4 貓</small></span>
+                        <span class="choice-check" aria-hidden="true">✓</span>
+                      </span>
+                      <span class="choice-card-price">
+                        <span class="rate-line">
+                          <span class="rate-label">平日每晚</span>
+                          <span class="rate-amount"><strong>NT$ 1,100</strong><span>起</span></span>
+                        </span>
+                        <span class="rate-line spring-card-rate">
+                          <span class="rate-label">春節每晚</span>
+                          <span class="rate-amount"><strong>NT$ 1,650</strong><span>起</span></span>
+                        </span>
+                      </span>
+                    </span>
+                    <span class="room-photo-frame choice-card-media choice-card-media--jump">
+                      <span class="jump-photo-crop">
+                        <img
+                          class="room-photo room-photo--jump"
+                          src="assets/jump-family-room.jpg"
+                          alt="眺跳家庭房實景"
+                          width="840"
+                          height="1536"
+                          decoding="async"
+                        />
+                      </span>
+                    </span>
+                  </span>
+                </label>
+
+                <label class="choice-card">
                   <input id="familyRoomToggle" type="checkbox" value="family" />
                   <span class="choice-card-body">
+                    <span class="choice-card-copy">
                     <span class="choice-card-top">
                       <span class="choice-card-title">探險家庭房<small>每間最多 6 貓・最多 1 間</small></span>
                       <span class="choice-check" aria-hidden="true">✓</span>
                     </span>
                     <span class="choice-card-price">
-                      <strong>NT$1,300</strong><span>／晚起</span>
+                      <span class="rate-line">
+                        <span class="rate-label">平日每晚</span>
+                        <span class="rate-amount"><strong>NT$ 1,300</strong><span>起</span></span>
+                      </span>
+                      <span class="rate-line spring-card-rate">
+                        <span class="rate-label">春節每晚</span>
+                        <span class="rate-amount"><strong>NT$ 1,950</strong><span>起</span></span>
+                      </span>
                     </span>
-                    <span class="room-photo-frame">
+                    </span>
+                    <span class="room-photo-frame choice-card-media">
                       <img
                         class="room-photo room-photo--adventure"
                         src="assets/adventure-family-room.jpg"
@@ -1898,6 +1987,33 @@
 
               <div class="room-count-row">
                 <div class="room-count-copy">
+                  <strong>眺跳家庭房</strong>
+                  <span>最多 4 隻貓</span>
+                </div>
+                <div class="room-count-control">
+                  <div class="stepper room-stepper" role="group" aria-label="眺跳家庭房間數">
+                    <button type="button" id="decreaseJumpRooms" aria-label="減少一間眺跳家庭房">−</button>
+                    <span class="stepper-value">
+                      <input
+                        id="jumpRoomCount"
+                        name="jumpRoomCount"
+                        type="number"
+                        value="0"
+                        min="0"
+                        max="3"
+                        step="1"
+                        inputmode="numeric"
+                        aria-label="眺跳家庭房間數"
+                      />
+                      <span class="room-count-unit" aria-hidden="true">間</span>
+                    </span>
+                    <button type="button" id="increaseJumpRooms" aria-label="增加一間眺跳家庭房">＋</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="room-count-row">
+                <div class="room-count-copy">
                   <strong>探險家庭房</strong>
                   <span>每間最多 6 隻貓・最多 1 間</span>
                 </div>
@@ -1929,13 +2045,13 @@
           <section class="section" aria-labelledby="catsHeading">
             <h2 class="section-heading" id="catsHeading">
               <span class="step-number" aria-hidden="true">2</span>
-              入住的貓咪數量
+              入住貓數
             </h2>
 
             <div class="cat-row">
               <div class="cat-copy">
-                <strong>共有幾隻貓咪入住？</strong>
-                <span id="catLimitNote">每間基本房價含 1 隻・本次最多 3 隻貓</span>
+                <strong>入住貓咪共幾隻？</strong>
+                <span id="catLimitNote">每間房價含 1 隻・最多 3 隻貓</span>
               </div>
               <div class="stepper" role="group" aria-label="貓咪數量">
                 <button type="button" id="decreaseCats" aria-label="減少一隻貓">−</button>
@@ -1958,7 +2074,7 @@
           <section class="section" aria-labelledby="datesHeading">
             <h2 class="section-heading" id="datesHeading">
               <span class="step-number" aria-hidden="true">3</span>
-              選擇預計住宿日期
+              住宿日期
             </h2>
 
             <div class="date-grid">
@@ -1971,14 +2087,16 @@
                 <input class="date-input" id="checkOut" name="checkOut" type="date" required />
               </label>
             </div>
-            <p class="date-caption">住宿晚數依日期差計算，例如 7/23–7/27 為 4 晚。</p>
+            <p class="date-caption">入住日計晚，退宿日不計；跨春節檔期將分開計價。</p>
+            <p class="spring-date-status" id="springDateStatus" role="status" hidden></p>
+            <p class="error-message" id="minimumStayError" role="alert"></p>
             <p class="error-message" id="dateError" role="alert"></p>
           </section>
 
           <section class="section" aria-labelledby="checkoutHeading">
             <h2 class="section-heading" id="checkoutHeading">
               <span class="step-number" aria-hidden="true">4</span>
-              選擇預計退宿時間
+              退宿時間
             </h2>
 
             <fieldset>
@@ -1996,7 +2114,7 @@
                 </label>
 
                 <label class="time-choice">
-                  <input type="radio" name="checkoutTime" value="late" />
+                  <input id="lateCheckout" type="radio" name="checkoutTime" value="late" />
                   <span class="time-choice-body">
                     <span class="radio-dot" aria-hidden="true"></span>
                     <span class="time-choice-copy">
@@ -2007,12 +2125,13 @@
                 </label>
               </div>
             </fieldset>
+            <p class="date-caption" id="checkoutPolicyNote">非春節退宿超過 15:00，依一般規則計費。</p>
           </section>
 
           <section class="section" aria-labelledby="mealHeading">
             <h2 class="section-heading" id="mealHeading">
               <span class="step-number" aria-hidden="true">5</span>
-              是否加購伙食
+              伙食加購
             </h2>
 
             <fieldset>
@@ -2067,7 +2186,7 @@
             <div class="cat-row meal-quantity-row" id="mealQuantityRow" hidden>
               <div class="cat-copy">
                 <strong id="mealQuantityTitle">每隻貓要加購幾天？</strong>
-                <span id="mealQuantityHelp">請選擇實際需要加購的數量</span>
+                <span id="mealQuantityHelp">請選加購數量</span>
               </div>
               <div class="stepper" id="mealQuantityStepper" role="group" aria-label="伙食加購數量">
                 <button type="button" id="decreaseMealQuantity" aria-label="減少一份">−</button>
@@ -2085,28 +2204,40 @@
                 <button type="button" id="increaseMealQuantity" aria-label="增加一份">＋</button>
               </div>
             </div>
-            <p class="date-caption">乾飼料與套組可選每隻貓的加購天數；罐頭只需選擇整筆預約的總罐數。伙食費不參與長住折扣。</p>
+            <p class="date-caption">乾飼料與套組請選每隻貓的加購天數；罐頭請選總罐數。伙食費不計入長住折扣。</p>
           </section>
         </form>
 
         <aside class="panel summary-panel" aria-labelledby="summaryHeading">
           <div class="summary-top">
             <div class="summary-kicker">
-              <span id="summaryHeading">您的試算結果</span>
-              <span class="live-badge" id="calculationBadge">自動計算</span>
+              <span id="summaryHeading">試算結果</span>
+              <span class="live-badge" id="calculationBadge">尚未選日期</span>
             </div>
             <p class="total-label" id="totalLabel">預估總額</p>
             <p class="total-amount" id="totalAmount" aria-live="polite">NT$0</p>
-            <p class="stay-summary" id="staySummary">請選擇預計住宿日期</p>
-            <span class="discount-badge" id="discountBadge" hidden>長住優惠已套用</span>
+            <p class="stay-summary" id="staySummary">請選擇住宿日期</p>
+            <span class="discount-badge" id="discountBadge" hidden>已套用長住優惠</span>
             <p class="manual-quote-message" id="manualQuoteMessage" hidden>
-              本次住宿另享長住專案折扣；貓家人員將依房型、貓咪數量與照護需求，提供專屬優惠價。
+              符合 30 晚長住專案，優惠價由貓家人員另行報價。
             </p>
           </div>
 
           <div class="summary-body">
+            <section class="spring-summary" aria-labelledby="periodHeading">
+              <h3 id="periodHeading">住宿明細</h3>
+              <div class="period-line" id="regularPeriod">
+                <span class="period-copy"><span class="period-label">平日 <b id="regularNights">0</b> 晚</span><small id="regularFormula">—</small></span>
+                <strong id="regularSubtotal">NT$0</strong>
+              </div>
+              <div class="period-line holiday-line" id="holidayPeriod">
+                <span class="period-copy"><span class="period-label">春節 <b id="holidayNights">0</b> 晚</span><small id="holidayFormula">—</small></span>
+                <strong id="holidaySubtotal">NT$0</strong>
+              </div>
+              <p class="date-caption" id="extraCatFormula">每間房價含 1 隻貓。</p>
+            </section>
             <dl class="breakdown">
-              <div class="breakdown-row">
+              <div class="breakdown-row" id="nightlyRow">
                 <dt>單晚房價<span id="nightlyFormula">基本房價 NT$850</span></dt>
                 <dd id="nightlyRate">NT$850</dd>
               </div>
@@ -2119,7 +2250,7 @@
                 <dd id="discountAmount">NT$0</dd>
               </div>
               <div class="breakdown-row final-stay-row">
-                <dt>折扣後住宿費<span id="discountedStayLabel">未套用折扣</span></dt>
+                <dt>住宿費<span id="discountedStayLabel">未套用折扣</span></dt>
                 <dd id="discountedStaySubtotal">NT$0</dd>
               </div>
               <div class="breakdown-row">
@@ -2135,14 +2266,13 @@
             <div class="summary-divider"></div>
 
             <p class="formula-note" id="formulaNote">
-              住宿 7–13 晚享 95 折，14–29 晚享 9 折。超過 15:00 退宿時，再加收單晚房價的 50%。
+              住 7–13 晚享 95 折，14–29 晚享 9 折；15:00 後退宿加收單晚房價 50%。
             </p>
-            <p class="long-stay-notice">
-              住宿滿 30 晚起即適用長住專案折扣，請致電或洽詢貓家日子 LINE 官方帳號，貓家人員會為您提供專屬報價。
+            <p class="season-deposit-note" id="depositNote">
+              一般訂金 NT$500；春節訂金為住宿費 50%，店家確認後 3 日內支付。
             </p>
-
             <button class="primary-button" id="startReservation" type="button">
-              <span>下一步・開始填寫預約</span>
+              <span>下一步・填寫資料</span>
               <span class="button-arrow" aria-hidden="true">→</span>
             </button>
           </div>
@@ -2160,14 +2290,13 @@
           <div class="reservation-hero">
             <div>
               <p class="reservation-eyebrow">STEP 2・RESERVATION</p>
-              <h2 class="reservation-title" id="reservationHeading">填寫住宿預約資料</h2>
+              <h2 class="reservation-title" id="reservationHeading">填寫預約資料</h2>
               <p class="reservation-intro">
-                試算內容已經自動帶入。填寫完成後可直接送出。
-                完整資料會登記至貓家日子的預約表，並以 Email 通知店家。
+                試算內容已帶入；填寫後即可送出，店家將收到 Email 通知。
               </p>
             </div>
             <button class="secondary-button" id="backToEstimate" type="button">
-              ← 返回修改試算
+              ← 返回試算
             </button>
           </div>
 
@@ -2178,14 +2307,14 @@
             </label>
 
             <section class="reservation-section" aria-labelledby="bookingSummaryHeading">
-              <h3 class="reservation-section-title" id="bookingSummaryHeading">本次試算內容</h3>
+              <h3 class="reservation-section-title" id="bookingSummaryHeading">試算內容</h3>
               <dl class="booking-summary">
                 <div>
                   <dt>房型</dt>
                   <dd id="reservationRoom">—</dd>
                 </div>
                 <div>
-                  <dt>房間數量</dt>
+                  <dt>間數</dt>
                   <dd id="reservationRooms">—</dd>
                 </div>
                 <div>
@@ -2193,7 +2322,7 @@
                   <dd id="reservationDates">—</dd>
                 </div>
                 <div>
-                  <dt>貓咪數量</dt>
+                  <dt>貓數</dt>
                   <dd id="reservationCats">—</dd>
                 </div>
                 <div>
@@ -2206,18 +2335,18 @@
                 </div>
               </dl>
               <p class="manual-quote-note" id="reservationQuoteNote" hidden>
-                本次住宿已符合 30 晚長住專案；上述為折扣前預估總額，最終優惠價由貓家人員提供。
+                符合 30 晚長住專案；以上為折扣前金額，優惠價由貓家人員提供。
               </p>
             </section>
 
             <section class="reservation-section" aria-labelledby="scheduleHeading">
-              <h3 class="reservation-section-title" id="scheduleHeading">預計入住與退宿時間</h3>
+              <h3 class="reservation-section-title" id="scheduleHeading">入住與退宿時間</h3>
               <p class="reservation-section-note">
-                入住最早 10:00、退宿最晚 20:30；實際時段仍以貓家日子回覆為準。
+                最早 10:00 入住、最晚 20:30 退宿；實際時段以店家確認為準。
               </p>
               <div class="form-grid">
                 <label class="field-group">
-                  <span class="input-label">預計入住時間<span class="required-mark">＊</span></span>
+                  <span class="input-label">入住時間<span class="required-mark">＊</span></span>
                   <input
                     class="text-input"
                     id="arrivalTime"
@@ -2227,10 +2356,10 @@
                     min="10:00"
                     required
                   />
-                  <span class="field-help">最早可填 10:00。</span>
+                  <span class="field-help">最早 10:00。</span>
                 </label>
                 <label class="field-group">
-                  <span class="input-label">預計退宿時間<span class="required-mark">＊</span></span>
+                  <span class="input-label">退宿時間<span class="required-mark">＊</span></span>
                   <input
                     class="text-input"
                     id="departureTime"
@@ -2317,7 +2446,7 @@
             <section class="reservation-section" aria-labelledby="catsFormHeading">
               <h3 class="reservation-section-title" id="catsFormHeading">入住貓咪資料</h3>
               <p class="reservation-section-note">
-                系統會依試算的貓咪數量產生欄位；健康與特殊需求若沒有，請填「無」。
+                系統依貓咪數量產生欄位；沒有健康或特殊需求請填「無」。
               </p>
               <div class="cat-forms" id="catForms"></div>
             </section>
@@ -2325,7 +2454,7 @@
             <section class="reservation-section" aria-labelledby="additionalHeading">
               <h3 class="reservation-section-title" id="additionalHeading">其他補充</h3>
               <label class="field-group full-width">
-                <span class="input-label">其他希望貓家日子先知道的事情</span>
+                <span class="input-label">其他事項</span>
                 <textarea
                   class="textarea-input"
                   id="additionalNotes"
@@ -2340,7 +2469,7 @@
               <label class="confirmation-box">
                 <input id="reservationConsent" name="reservationConsent" type="checkbox" required />
                 <span>
-                  我已確認上述資料，並了解送出後仍需由貓家日子確認房況、入住安排與最終金額，才算完成預約。
+                  我已確認資料，並了解預約須經貓家日子確認房況、入住安排與金額後才成立。
                 </span>
               </label>
 
@@ -2350,7 +2479,7 @@
                   <span class="button-arrow" aria-hidden="true">→</span>
                 </button>
                 <p class="privacy-note">
-                  送出後，完整資料會登記至貓家日子的預約表；這個網頁本身不會保存你的資料。
+                  資料將登記至預約表，本頁不另行留存。
                 </p>
                 <p class="reservation-status" id="reservationStatus" role="alert" aria-live="polite"></p>
 
@@ -2361,11 +2490,10 @@
                   </div>
                   <div class="reservation-success-message">
                     <div class="reservation-success-copy">
-                      <p>
-                        敬請於預約七日內匯款訂金500元至以下帳戶，並截圖或私訊您的帳號末五碼傳至貓家日子 Line
-                        官方帳號（@days.cat），我們收到款項即正式為您的寶貝保留房間。
+                      <p id="paymentInstruction">
+                        店家確認房況後，請依本頁顯示的訂金金額與期限完成匯款，並將帳號末五碼傳至貓家日子 LINE 官方帳號（@days.cat）。
                       </p>
-                      <p>感謝您的預約，期待為您的寶貝服務！</p>
+                      <p>感謝您的預約！</p>
                     </div>
                     <figure class="line-official-qr">
                       <img
@@ -2445,7 +2573,7 @@
                         貓家日子｜貓咪住宿服務契約（預先審閱）
                       </h5>
                       <p class="contract-preview-note">
-                        系統已依本次預約資料產生契約 PDF，並隨新預約通知信寄送給店家。
+                        系統已依預約資料產生契約 PDF，並隨通知信寄給店家。
                         以下內容供預先審閱；實際權利義務以雙方確認並簽署的版本為準。
                       </p>
                     </div>
@@ -2485,7 +2613,7 @@
                       <li class="contract-clause">
                         <strong>第三條　照護與緊急醫療：</strong>乙方依甲方提供之方式餵食及照護。貓咪如有緊急狀況，乙方得先聯繫甲方或緊急聯絡人；情況急迫而無法聯繫時，得逕送甲方指定醫院，該院未營業時改送吉立動物醫院。就醫、交通及必要處置費用由甲方負擔。
                       </li>
-                      <li class="contract-clause">
+                      <li class="contract-clause" id="contractCancellationClause">
                         <strong>第四條　預約、取消與提前退宿：</strong>乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。入住後如甲方提前退宿，已支付之住宿費不予退還；入住前解約之手續費依相關法令辦理，最高不超過約定總價百分之五。甲方未依約付款或違反契約，乙方得終止服務。
                       </li>
                       <li class="contract-clause">
@@ -2511,7 +2639,7 @@
       </section>
 
       <p class="footer-note">
-        試算結果僅供參考，不代表預約成立；實際房況、入住安排與金額，以貓家日子回覆確認為準。
+        試算僅供參考；預約須經店家確認房況、入住安排與金額後成立。
         <span class="version-tag" id="versionTag">客用試算頁面</span>
       </p>
       <footer class="contact-footer" aria-label="貓家日子聯絡資訊">
@@ -2527,6 +2655,7 @@
     </main>
 
     <script src="config.js"></script>
+    <script src="seasonal-pricing.js"></script>
     <script>
       (() => {
         "use strict";
@@ -2537,6 +2666,12 @@
             baseRate: 850,
             maxCatsPerRoom: 3,
             maxRooms: 10,
+          },
+          jump: {
+            name: "眺跳家庭房",
+            baseRate: 1100,
+            maxCatsPerRoom: 4,
+            maxRooms: 3,
           },
           family: {
             name: "探險家庭房",
@@ -2558,9 +2693,10 @@
           },
         });
 
-        const APP_VERSION = "線上預約與雲端登記頁面";
+        const APP_VERSION = "2027 春節住宿";
         const APP_CONFIG = window.CAT_STAY_CONFIG || {};
         const BOOKING_ENDPOINT = String(APP_CONFIG.bookingEndpoint || "").trim();
+        const SEASON = window.SeasonalPricing.DEFAULT_SEASON;
         const BOOKING_RESPONSE_TIMEOUT_MS = 15000;
         const EXTRA_CAT_RATE = 200;
         const DAYCARE_RATE = 0.5;
@@ -2581,6 +2717,12 @@
             input: document.getElementById("smallRoomCount"),
             decrease: document.getElementById("decreaseSmallRooms"),
             increase: document.getElementById("increaseSmallRooms"),
+          },
+          jump: {
+            toggle: document.getElementById("jumpRoomToggle"),
+            input: document.getElementById("jumpRoomCount"),
+            decrease: document.getElementById("decreaseJumpRooms"),
+            increase: document.getElementById("increaseJumpRooms"),
           },
           family: {
             toggle: document.getElementById("familyRoomToggle"),
@@ -2604,6 +2746,12 @@
         const decreaseMealQuantityButton = document.getElementById("decreaseMealQuantity");
         const increaseMealQuantityButton = document.getElementById("increaseMealQuantity");
         const dateError = document.getElementById("dateError");
+        const minimumStayError = document.getElementById("minimumStayError");
+        const springDateStatus = document.getElementById("springDateStatus");
+        const lateCheckoutInput = document.getElementById("lateCheckout");
+        const checkoutPolicyNote = document.getElementById("checkoutPolicyNote");
+        const paymentInstruction = document.getElementById("paymentInstruction");
+        const springPriceRows = document.getElementById("springPriceRows");
         const estimateStep = document.getElementById("estimateStep");
         const reservationStep = document.getElementById("reservationStep");
         const estimateProgress = document.getElementById("estimateProgress");
@@ -2631,6 +2779,7 @@
         const contractRoomSummary = document.getElementById("contractRoomSummary");
         const contractCatCount = document.getElementById("contractCatCount");
         const contractStayFee = document.getElementById("contractStayFee");
+        const contractCancellationClause = document.getElementById("contractCancellationClause");
 
         const output = {
           calculationBadge: document.getElementById("calculationBadge"),
@@ -2639,6 +2788,16 @@
           staySummary: document.getElementById("staySummary"),
           discountBadge: document.getElementById("discountBadge"),
           manualQuoteMessage: document.getElementById("manualQuoteMessage"),
+          regularPeriod: document.getElementById("regularPeriod"),
+          regularNights: document.getElementById("regularNights"),
+          regularFormula: document.getElementById("regularFormula"),
+          regularSubtotal: document.getElementById("regularSubtotal"),
+          holidayPeriod: document.getElementById("holidayPeriod"),
+          holidayNights: document.getElementById("holidayNights"),
+          holidayFormula: document.getElementById("holidayFormula"),
+          holidaySubtotal: document.getElementById("holidaySubtotal"),
+          extraCatFormula: document.getElementById("extraCatFormula"),
+          nightlyRow: document.getElementById("nightlyRow"),
           nightlyFormula: document.getElementById("nightlyFormula"),
           nightlyRate: document.getElementById("nightlyRate"),
           nightCountLabel: document.getElementById("nightCountLabel"),
@@ -2652,6 +2811,7 @@
           mealLabel: document.getElementById("mealLabel"),
           mealFee: document.getElementById("mealFee"),
           formulaNote: document.getElementById("formulaNote"),
+          depositNote: document.getElementById("depositNote"),
           versionTag: document.getElementById("versionTag"),
           reservationRoom: document.getElementById("reservationRoom"),
           reservationRooms: document.getElementById("reservationRooms"),
@@ -2679,6 +2839,18 @@
           const date = new Date(year, month - 1, day);
           date.setDate(date.getDate() + days);
           return toLocalISO(date);
+        }
+
+        function renderSpringPriceTable() {
+          springPriceRows.innerHTML = Array.from({ length: 6 }, (_, index) => {
+            const cats = index + 1;
+            const cells = Object.entries(ROOM_TYPES).map(([roomKey, room]) => {
+              if (cats > room.maxCatsPerRoom) return "<td>—</td>";
+              const rate = SEASON.holidayBaseRates[roomKey] + (cats - 1) * SEASON.extraCatRate;
+              return `<td>${formatMoney(rate)}</td>`;
+            }).join("");
+            return `<tr><th scope="row">${cats} 隻</th>${cells}</tr>`;
+          }).join("");
         }
 
         function daysBetween(checkIn, checkOut) {
@@ -2895,16 +3067,6 @@
             mealPlan.unitRatePerCat *
             normalizedMealQuantity *
             (mealQuantityScope === "booking" ? 1 : normalizedCats);
-          const extraCatCount = Math.max(0, normalizedCats - roomSelection.roomCount);
-          const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
-          const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
-          const staySubtotal = nightlyRate * nights;
-          const longStayTier = getLongStayTier(nights);
-          const requiresManualQuote = Boolean(longStayTier.requiresManualQuote);
-          const discountRate = 1 - longStayTier.multiplier;
-          const discountedStaySubtotal = Math.round(staySubtotal * longStayTier.multiplier);
-          const discountAmount = staySubtotal - discountedStaySubtotal;
-          const daycareFee = isLate ? nightlyRate * DAYCARE_RATE : 0;
           const singleRoom = roomSelection.rooms.length === 1
             ? ROOM_TYPES[roomSelection.rooms[0].roomKey]
             : {
@@ -2914,7 +3076,7 @@
                 maxRooms: roomSelection.roomCount,
               };
 
-          return {
+          return window.SeasonalPricing.apply({
             ...roomSelection,
             room: singleRoom,
             roomKey: roomSelection.rooms.length === 1
@@ -2932,20 +3094,8 @@
             mealUnit: normalizedMealPlanKey === "canned" ? "罐" : mealPlan.unit,
             mealUnitRatePerCat: mealPlan.unitRatePerCat,
             mealSubtotal,
-            extraCatCount,
-            extraCatFeePerNight,
-            nightlyRate,
-            staySubtotal,
-            discountRate,
-            discountMultiplier: longStayTier.multiplier,
-            discountName: longStayTier.name,
-            discountDescription: longStayTier.description,
-            requiresManualQuote,
-            discountAmount,
-            discountedStaySubtotal,
-            daycareFee,
-            total: discountedStaySubtotal + daycareFee + mealSubtotal,
-          };
+            extraCatCount: Math.max(0, normalizedCats - roomSelection.roomCount),
+          }, SEASON);
         }
 
         function getFormState() {
@@ -2997,11 +3147,17 @@
           const nightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
 
           currentQuote = null;
-          output.calculationBadge.textContent = "自動計算";
+          minimumStayError.textContent = "";
+          minimumStayError.classList.remove("is-visible");
+          springDateStatus.hidden = true;
+          output.regularPeriod.hidden = true;
+          output.holidayPeriod.hidden = true;
+          output.nightlyRow.hidden = false;
+          output.calculationBadge.textContent = "尚未選日期";
           output.totalLabel.textContent = "預估總額";
           output.totalAmount.textContent = "NT$0";
           output.staySummary.textContent = roomSelection.roomCount
-            ? "請確認預計住宿日期"
+            ? "請選擇住宿日期"
             : "請至少選擇一種房型";
           output.discountBadge.hidden = true;
           output.manualQuoteMessage.hidden = true;
@@ -3023,6 +3179,8 @@
           output.daycareFee.textContent = "NT$0";
           output.mealLabel.textContent = MEAL_PLANS[state.mealPlanKey].name;
           output.mealFee.textContent = "NT$0";
+          output.extraCatFormula.textContent = "每間房價含 1 隻貓。";
+          output.depositNote.textContent = "一般訂金 NT$500；春節訂金為住宿費 50%，店家確認後 3 日內支付。";
           startReservationButton.disabled = true;
           setDateError(message);
         }
@@ -3031,9 +3189,11 @@
           currentQuote = quote;
           const spansDifferentYears = quote.checkIn.slice(0, 4) !== quote.checkOut.slice(0, 4);
 
-          output.calculationBadge.textContent = quote.requiresManualQuote
-            ? "折扣前試算"
-            : "自動計算";
+          output.calculationBadge.textContent = quote.hasHoliday
+            ? "含春節檔期"
+            : quote.requiresManualQuote
+              ? "折扣前試算"
+              : "一般平日";
           output.totalLabel.textContent = quote.requiresManualQuote
             ? "折扣前預估總額"
             : "預估總額";
@@ -3042,12 +3202,26 @@
             quote.checkIn,
             spansDifferentYears,
           )}–${formatDate(quote.checkOut, spansDifferentYears)}・${quote.nights} 晚`;
+          output.regularPeriod.hidden = quote.regularNights === 0;
+          output.holidayPeriod.hidden = quote.holidayNights === 0;
+          output.regularNights.textContent = quote.regularNights;
+          output.holidayNights.textContent = quote.holidayNights;
+          output.regularFormula.textContent = `${formatMoney(quote.regularNightlyRate)}／晚 × ${quote.regularNights} 晚`;
+          output.holidayFormula.textContent = `${formatMoney(quote.holidayNightlyRate)}／晚 × ${quote.holidayNights} 晚`;
+          output.regularSubtotal.textContent = formatMoney(quote.regularSubtotal);
+          output.holidaySubtotal.textContent = formatMoney(quote.holidaySubtotal);
+          output.extraCatFormula.textContent = quote.extraCatCount > 0
+            ? `房價已含 ${quote.roomCount} 隻貓；加貓 ${quote.extraCatCount} 隻，每晚 ${formatMoney(quote.extraCatFeePerNight)}。`
+            : `房價已含 ${quote.roomCount} 隻貓，無加貓費。`;
+          output.nightlyRow.hidden = quote.hasHoliday;
           output.nightlyRate.textContent = formatMoney(quote.nightlyRate);
           output.nightlyFormula.textContent =
             quote.extraCatCount > 0
               ? `${quote.roomRateFormula}＋加貓 ${formatMoney(quote.extraCatFeePerNight)}`
               : quote.roomRateFormula;
-          output.nightCountLabel.textContent = `${formatMoney(quote.nightlyRate)} × ${quote.nights} 晚`;
+          output.nightCountLabel.textContent = quote.hasHoliday
+            ? `${quote.regularNights} 晚平日＋${quote.holidayNights} 晚春節`
+            : `${formatMoney(quote.nightlyRate)} × ${quote.nights} 晚`;
           output.staySubtotal.textContent = formatMoney(quote.staySubtotal);
           output.discountLabel.textContent =
             quote.discountDescription;
@@ -3066,38 +3240,48 @@
             : formatMoney(quote.discountedStaySubtotal);
           output.discountBadge.hidden = !quote.discountRate && !quote.requiresManualQuote;
           output.discountBadge.textContent = quote.requiresManualQuote
-            ? "✓ 已符合 30 晚長住專案"
+            ? "已符合 30 晚長住專案"
             : quote.discountRate
-              ? `✓ 已自動套用 ${quote.discountName}長住優惠`
+              ? `已套用 ${quote.discountName}長住優惠`
               : "";
           output.manualQuoteMessage.hidden = !quote.requiresManualQuote;
-          output.daycareLabel.textContent = quote.isLate
-            ? `${formatMoney(quote.nightlyRate)} × 50%`
-            : "15:00（含）前退宿";
+          output.daycareLabel.textContent = quote.lateCheckoutUnavailable
+            ? "春節期間不提供"
+            : quote.isLate
+              ? `${formatMoney(quote.regularNightlyRate)} × 50%`
+              : "15:00（含）前退宿";
           output.daycareFee.textContent = formatMoney(quote.daycareFee);
           output.mealLabel.textContent = describeMeal(quote);
           output.mealFee.textContent = formatMoney(quote.mealSubtotal);
-          const discountText = quote.discountRate && !quote.requiresManualQuote
-            ? ` × ${quote.discountMultiplier}＝${formatMoney(
-                quote.discountedStaySubtotal,
-              )}`
-            : "";
-          const feeParts = [
-            `${quote.requiresManualQuote ? "折扣前住宿費" : "住宿費"} ${formatMoney(
-              quote.staySubtotal,
-            )}${discountText}`,
-          ];
-          if (quote.isLate) feeParts.push(`超時安親費 ${formatMoney(quote.daycareFee)}`);
-          if (quote.mealSubtotal) {
-            feeParts.push(`${describeMeal(quote)} ${formatMoney(quote.mealSubtotal)}`);
-          }
           output.formulaNote.textContent = quote.requiresManualQuote
-            ? `${feeParts.join("，")}，折扣前合計 ${formatMoney(
-                quote.total,
-              )}。長住專案優惠將於專屬報價中另行折抵。`
-            : `${feeParts.join("，")}。長住折扣僅適用住宿費。`;
+            ? `折扣前合計 ${formatMoney(quote.total)}；專案優惠另計。`
+            : quote.hasHoliday
+              ? "春節不折扣；平日 7–13 晚享 95 折、14–29 晚享 9 折。"
+              : "長住折扣僅適用住宿費。";
 
-          startReservationButton.disabled = false;
+          minimumStayError.textContent = quote.meetsMinimumStay
+            ? ""
+            : "春節至少需住 5 個計價晚；目前僅可試算，不能送出預約。";
+          minimumStayError.classList.toggle("is-visible", !quote.meetsMinimumStay);
+          springDateStatus.hidden = !(quote.hasHoliday || quote.checkoutDuringHoliday);
+          springDateStatus.textContent = quote.hasHoliday
+            ? `含春節 ${quote.holidayNights} 晚、平日 ${quote.regularNights} 晚；2027/2/11 為最後一個春節計價晚。`
+            : "全程按平日價；退宿日逢春節起日，無法延後退宿。";
+          lateCheckoutInput.disabled = quote.lateCheckoutUnavailable;
+          lateCheckoutInput.closest("label").classList.toggle("is-unavailable", quote.lateCheckoutUnavailable);
+          if (quote.lateCheckoutUnavailable) {
+            form.querySelector('input[name="checkoutTime"][value="ontime"]').checked = true;
+          }
+          checkoutPolicyNote.textContent = quote.lateCheckoutUnavailable
+            ? "春節期間不提供臨時安親或延後退宿。"
+            : "非春節退宿超過 15:00，依一般規則計費。";
+          output.depositNote.textContent = quote.hasHoliday
+            ? quote.depositAmount === null
+              ? "30 晚以上另行報價，金額確認後通知訂金。"
+              : `春節訂金 ${formatMoney(quote.depositAmount)}（住宿費 50%），店家確認後 ${quote.depositDueDays} 日內支付。`
+            : `訂金 ${formatMoney(quote.depositAmount)}，店家確認後 ${quote.depositDueDays} 日內支付。`;
+
+          startReservationButton.disabled = !quote.meetsMinimumStay;
           setDateError();
         }
 
@@ -3114,11 +3298,11 @@
           if (!hasMealPlan) return;
 
           mealQuantityTitle.textContent = isCanned
-            ? "整段住宿總共要加購幾罐？"
+            ? "總共加購幾罐？"
             : "每隻貓要加購幾天？";
           mealQuantityHelp.textContent = isCanned
-            ? "每罐 NT$40；請填整筆預約的總罐數，不會乘上貓咪數量"
-            : `${formatMoney(mealPlan.unitRatePerCat)} × 天數 × 貓咪數量（最多 ${Math.max(1, nights)} 天）`;
+            ? "每罐 NT$40；請填總罐數"
+            : `${formatMoney(mealPlan.unitRatePerCat)} × 天數 × 貓數（最多 ${Math.max(1, nights)} 天）`;
           mealQuantityInput.value = clampMealQuantity(
             state.mealQuantity,
             state.mealPlanKey,
@@ -3155,7 +3339,7 @@
           catCountInput.value = state.cats;
           catCountInput.max = Math.max(1, maxCats);
           catLimitNote.textContent = roomSelection.roomCount
-            ? `每間基本房價含 1 隻；超出房數的貓每隻每晚加收 NT$200・本次最多 ${maxCats} 隻`
+            ? `每間房價含 1 隻；加貓每隻每晚 NT$200・最多 ${maxCats} 隻`
             : "請先選擇至少一種房型";
           decreaseCatsButton.disabled = state.cats <= 1;
           increaseCatsButton.disabled = !roomSelection.roomCount || state.cats >= maxCats;
@@ -3169,12 +3353,12 @@
           setRoomError();
 
           if (!state.checkIn || !state.checkOut) {
-            renderEmptyState(state, "請完整選擇入住日期與退宿日期。");
+            renderEmptyState(state, "請選擇入住與退宿日期。");
             return;
           }
 
           if (!Number.isFinite(nights) || nights < 1) {
-            renderEmptyState(state, "退宿日期需晚於入住日期至少一天。");
+            renderEmptyState(state, "退宿日期須晚於入住日期。");
             return;
           }
 
@@ -3351,7 +3535,7 @@
         }
 
         function showReservationStep() {
-          if (!currentQuote) return;
+          if (!currentQuote || !currentQuote.meetsMinimumStay) return;
           renderReservationSummary(currentQuote);
           renderCatForms(currentQuote.cats);
           estimateStep.hidden = true;
@@ -3402,6 +3586,7 @@
               emergencyRelation: getReservationValue(formData, "emergencyRelation", ""),
             },
             booking: {
+              pricingVersion: quote.pricingVersion,
               ...(quote.rooms.length === 1 ? { roomKey: quote.rooms[0].roomKey } : {}),
               roomCount: quote.roomCount,
               rooms: quote.rooms.map((room) => ({
@@ -3434,6 +3619,12 @@
           contractStayFee.textContent = quote.requiresManualQuote
             ? `長住專案待專屬報價（折扣前參考總額 ${formatMoney(quote.total)}）`
             : `住宿費 ${formatMoney(quote.discountedStaySubtotal)}；預估總額 ${formatMoney(quote.total)}`;
+          contractCancellationClause.innerHTML = quote.hasHoliday
+            ? "<strong>第四條　預約、取消與提前退宿：</strong>乙方採全預約制。春節訂金為住宿費百分之五十，經乙方確認房況後，甲方應於三日內完成支付；逾期視同放棄保留。於 2026 年 12 月 31 日（含）前取消，訂金全額退還；於 2027 年 1 月 1 日至 1 月 23 日（含）取消，退還訂金百分之五十；自 2027 年 1 月 24 日（含）起取消，訂金不予退還。入住後提前退宿，已支付及剩餘住宿費不予退還。"
+            : "<strong>第四條　預約、取消與提前退宿：</strong>乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。入住後如甲方提前退宿，已支付之住宿費不予退還；入住前解約之手續費依相關法令辦理，最高不超過約定總價百分之五。甲方未依約付款或違反契約，乙方得終止服務。";
+          paymentInstruction.textContent = quote.depositAmount === null
+            ? "此住宿需專屬報價；金額與訂金確認後再依通知匯款，確認前請勿付款。"
+            : `訂金 ${formatMoney(quote.depositAmount)}，請於店家確認後 ${quote.depositDueDays} 日內匯款，並將帳號末五碼傳至貓家日子 LINE 官方帳號（@days.cat）。`;
         }
 
         function renderPaymentAccount(bookingResult) {
@@ -3544,11 +3735,12 @@
             return result;
           } catch (error) {
             if (error?.bookingResponseReceived) throw error;
-            if (queueBookingPayload(payload)) {
-              return { ok: true, opaque: true, queued: true };
+            if (!queueBookingPayload(payload)) {
+              await postOpaqueBookingPayload(payload, timeoutMs);
             }
-            postOpaqueBookingPayload(payload, timeoutMs).catch(() => {});
-            return { ok: true, opaque: true, queued: false };
+            const unconfirmedError = new Error("後端尚未回傳預約確認");
+            unconfirmedError.deliveryUnconfirmed = true;
+            throw unconfirmedError;
           }
         }
 
@@ -3726,25 +3918,31 @@
             setSubmitting(true, "正在登記預約…");
             reservationStatus.textContent = "正在安全登記預約資料，請勿關閉頁面。";
             const bookingResult = await postBookingPayload(payload);
+            const confirmedQuote = bookingResult?.quote
+              ? { ...currentQuote, ...bookingResult.quote }
+              : currentQuote;
 
             reservationStatus.textContent = "預約資料已送出。";
             reservationStatus.classList.add("is-success");
             successReservationId.textContent = reservationId;
             renderPaymentAccount(bookingResult);
-            renderContractPreview(payload, currentQuote);
+            renderContractPreview(payload, confirmedQuote);
+            currentQuote = confirmedQuote;
             setSubmitted();
             reservationSuccess.hidden = false;
             setProgressState(2);
             pendingSubmission = null;
             scrollToPaymentDetails();
           } catch (error) {
-            reservationStatus.textContent =
-              "目前無法登記預約資料，請確認網路連線後再試一次。";
+            reservationStatus.textContent = error?.deliveryUnconfirmed
+              ? `系統尚未回傳確認。請保留預約編號 ${reservationId}，稍後可用同一編號重試；確認成功前請勿付款。`
+              : error?.message || "目前無法登記預約資料，請確認網路連線後再試一次。";
           } finally {
             if (!submitButton.classList.contains("is-submitted")) setSubmitting(false);
           }
         });
 
+        renderSpringPriceTable();
         initializeDates();
         output.versionTag.textContent = APP_VERSION;
         updateCalculator();
