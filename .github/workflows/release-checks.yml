@@ -47,11 +47,17 @@ jobs:
           const fs = require('node:fs');
           const health = JSON.parse(fs.readFileSync('/tmp/backend-health.json', 'utf8'));
           if (health.ok !== true) throw new Error('Production backend health check failed');
-          if (health.release !== 'cny-2027-production') {
+          if (health.release !== 'cny-2027-production-r2') {
             throw new Error(`Unexpected backend release: ${health.release || 'missing'}`);
           }
           if (health.pricingVersion !== 'cny-2027-v1') {
             throw new Error(`Unexpected pricing version: ${health.pricingVersion || 'missing'}`);
+          }
+          if (health.emailNotificationConfigured !== true) {
+            throw new Error('Production email notifications are not configured');
+          }
+          if (health.paymentAccountConfigured !== true) {
+            throw new Error('Production payment account is not configured');
           }
           console.log(`Backend ready: ${health.release} / ${health.pricingVersion}`);
           NODE
