@@ -53,11 +53,11 @@ window.CAT_STAY_CONFIG = Object.freeze({
 });
 ```
 
-Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。Calendar 預設使用 Apps Script 執行帳號的主要日曆；若日後要改用該帳號擁有的次要日曆，可在 `BOOKING_CALENDAR_ID` 指令碼屬性填入該日曆 ID。契約 PDF 會使用 Google 文件與僅限本程式建立檔案的 `drive.file` 權限，並需要外部請求權限呼叫 Google Drive 的 PDF 匯出端點。
+Email 收件地址必須以逗號分隔，存放在 Apps Script 的 `BOOKING_NOTIFICATION_EMAILS` 指令碼屬性，不可寫入 GitHub 或前端程式。Calendar 預設使用 Apps Script 執行帳號的主要日曆；若要改用該帳號擁有的次要日曆，可在 `BOOKING_CALENDAR_ID` 指令碼屬性填入該日曆 ID。後端會在回報成功前重新讀取行程驗證；找不到舊行程時會補建並更新行程 ID。契約 PDF 會使用 Google 文件與僅限本程式建立檔案的 `drive.file` 權限，並需要外部請求權限呼叫 Google Drive 的 PDF 匯出端點；PDF 產生失敗時，通知信仍會改以無附件寄出。
 
 完整匯款帳號必須存放在 Apps Script 的 `PAYMENT_ACCOUNT_NUMBER` 指令碼屬性，不可寫入 GitHub、`config.js` 或 `index.html`。後端只會在預約成功的回應中把帳號交給成功頁；若跨網域備援模式無法讀取回應，成功頁會提示客人改由 LINE 官方帳號確認。
 
-正式發佈時必須先部署 Apps Script，再合併 GitHub Pages 前端。GitHub 的 `Release checks` 只以 GET 驗證正式後端的發佈代號與計價版本，不會建立預約、寄信或新增 Calendar 行程。
+正式發佈時必須先部署 Apps Script，再合併 GitHub Pages 前端。Apps Script 的 GET 健康檢查會回報發佈代號、計價版本、Email 與匯款帳號是否完成設定，以及 Calendar 使用主要或指定日曆；它不會建立預約、寄信或新增 Calendar 行程。
 
 ## 檔案
 
