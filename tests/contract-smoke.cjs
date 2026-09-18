@@ -12,11 +12,26 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r4";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r5";/);
 assert.doesNotMatch(code, /integration-preview/);
 const mailCalls = [];
 const calendarEvents = new Map();
 const calendarInsertCalls = [];
+const urlFetchCalls = [];
+const scriptProperties = {
+  BOOKING_NOTIFICATION_EMAILS: "ops@example.com",
+  BOOKING_CALENDAR_ID: "booking-calendar@example.com",
+  TURNSTILE_SECRET_KEY: "",
+  TURNSTILE_ALLOWED_HOSTNAMES: "",
+};
+let turnstileResponse = {
+  responseCode: 200,
+  body: {
+    success: true,
+    hostname: "dayswithcats68.github.io",
+    action: "booking_submit",
+  },
+};
 const scriptConsole = { log() {}, warn() {}, error() {} };
 const context = vm.createContext({
   Calendar: {
@@ -55,9 +70,7 @@ const context = vm.createContext({
   PropertiesService: {
     getScriptProperties: () => ({
       getProperty(name) {
-        if (name === "BOOKING_NOTIFICATION_EMAILS") return "ops@example.com";
-        if (name === "BOOKING_CALENDAR_ID") return "booking-calendar@example.com";
-        return "";
+        return scriptProperties[name] || "";
       },
     }),
   },
@@ -66,6 +79,16 @@ const context = vm.createContext({
   },
   Utilities: {
     formatDate: (value) => new Date(value).toISOString().replace("T", " ").slice(0, 19),
+    newBlob: (value) => ({ getBytes: () => [...Buffer.from(String(value), "utf8")] }),
+  },
+  UrlFetchApp: {
+    fetch(url, options) {
+      urlFetchCalls.push({ url, options });
+      return {
+        getResponseCode: () => turnstileResponse.responseCode,
+        getContentText: () => JSON.stringify(turnstileResponse.body),
+      };
+    },
   },
 });
 
@@ -180,15 +203,103 @@ for (const source of [
   assert.throws(() => vm.runInContext(source, context));
 }
 
+assert.equal(
+  vm.runInContext('requiredDateText_("2027-02-28", "入住日期")', context),
+  "2027-02-28",
+);
+assert.throws(
+  () => vm.runInContext('requiredDateText_("2027-02-31", "入住日期")', context),
+  /入住日期格式不正確/,
+);
+assert.equal(
+  vm.runInContext('requiredPhone_("0912-345-678", "聯絡電話")', context),
+  "0912-345-678",
+);
+assert.throws(
+  () => vm.runInContext('requiredPhone_("not-a-phone", "聯絡電話")', context),
+  /聯絡電話格式不正確/,
+);
+assert.equal(
+  vm.runInContext(
+    'requiredReservationId_("DWC-20260918-161809-0123456789ABCDEF0123456789ABCDEF")',
+    context,
+  ),
+  "DWC-20260918-161809-0123456789ABCDEF0123456789ABCDEF",
+);
+assert.throws(
+  () => vm.runInContext('requiredReservationId_("DWC-20260918-161809-AB12")', context),
+  /頁面版本已更新/,
+);
+assert.equal(vm.runInContext('safeText_(" =2+2")', context), "' =2+2");
+
+context.testCat = {
+  name: "咪咪",
+  sex: "母",
+  age: 3,
+  neutered: "已結紮",
+  litter: "礦砂",
+  diet: "正常",
+  health: "無",
+  special: "無",
+};
+assert.equal(vm.runInContext("normalizeCat_(testCat, 1).sex", context), "母");
+context.testCat.sex = "女";
+assert.throws(
+  () => vm.runInContext("normalizeCat_(testCat, 1)", context),
+  /性別不正確/,
+);
+
+context.testEvent = {
+  postData: {
+    contents: JSON.stringify({ action: "createBooking", website: "" }),
+  },
+};
+assert.equal(vm.runInContext("parsePayload_(testEvent).action", context), "createBooking");
+context.testEvent.postData.contents = JSON.stringify({ action: "updateEmailStatus" });
+assert.throws(
+  () => vm.runInContext("parsePayload_(testEvent)", context),
+  /預約動作不正確/,
+);
+context.testEvent.postData.contents = JSON.stringify({
+  action: "createBooking",
+  notes: "x".repeat(64 * 1024),
+});
+assert.throws(
+  () => vm.runInContext("parsePayload_(testEvent)", context),
+  /預約資料內容過長/,
+);
+
+vm.runInContext('verifyTurnstile_("")', context);
+assert.equal(urlFetchCalls.length, 0);
+scriptProperties.TURNSTILE_SECRET_KEY = "test-secret";
+scriptProperties.TURNSTILE_ALLOWED_HOSTNAMES = "dayswithcats68.github.io, booking.example.com";
+assert.throws(
+  () => vm.runInContext('verifyTurnstile_("")', context),
+  /請先完成人機驗證/,
+);
+vm.runInContext('verifyTurnstile_("valid-test-token")', context);
+assert.equal(urlFetchCalls.length, 1);
+assert.equal(urlFetchCalls[0].url, "https://challenges.cloudflare.com/turnstile/v0/siteverify");
+turnstileResponse = {
+  responseCode: 200,
+  body: { success: true, hostname: "attacker.example", action: "booking_submit" },
+};
+assert.throws(
+  () => vm.runInContext('verifyTurnstile_("wrong-host-token")', context),
+  /人機驗證失敗/,
+);
+scriptProperties.TURNSTILE_SECRET_KEY = "";
+scriptProperties.TURNSTILE_ALLOWED_HOSTNAMES = "";
+
 const booking = {
-  reservationId: "DWC-20260901-TEST",
+  reservationId: "DWC-20260901-100000-0123456789ABCDEF0123456789ABCDEF",
   owner: { name: "王小明", phone: "0912-345-678" },
   arrivalTime: "15:00",
   departureTime: "15:00",
   quote,
   cats: [{
     name: "咪咪",
-    sex: "女",
+    sex: "母",
     age: 3,
     neutered: "已結紮",
     litter: "礦砂",
@@ -280,10 +391,13 @@ for (const text of [
 for (const scope of [
   "https://www.googleapis.com/auth/documents",
   "https://www.googleapis.com/auth/drive.file",
-  "https://www.googleapis.com/auth/script.external_request",
 ]) {
   assert.ok(!manifest.oauthScopes.includes(scope), `Manifest must not include unused scope: ${scope}`);
 }
+assert.ok(
+  manifest.oauthScopes.includes("https://www.googleapis.com/auth/script.external_request"),
+  "Manifest must allow server-side Turnstile verification",
+);
 
 const advancedServices = manifest.dependencies?.enabledAdvancedServices || [];
 assert.ok(
@@ -291,7 +405,12 @@ assert.ok(
   "Manifest must not enable the unused Drive service",
 );
 
-assert.doesNotMatch(code, /DocumentApp|UrlFetchApp|MimeType\.PDF|createContractPdf_/);
+assert.doesNotMatch(code, /DocumentApp|MimeType\.PDF|createContractPdf_/);
+assert.doesNotMatch(code, /function updateEmailStatus_|payload\.action === "updateEmailStatus"/);
+assert.doesNotMatch(html, /emailStatus:\s*"準備寄送"/);
+assert.match(html, /window\.crypto\.randomUUID/);
+assert.match(html, /new Uint8Array\(16\)/);
+assert.doesNotMatch(html, /Math\.random/);
 assert.match(html, /正式契約由店家確認後另行製作/);
 assert.match(html, /2026 年 12 月 31 日（含）前/);
 assert.match(html, /2027 年 1 月 1 日至 1 月 23 日（含）/);
