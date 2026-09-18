@@ -12,7 +12,7 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r2";/);
 assert.doesNotMatch(code, /integration-preview/);
 
 class FakeText {
@@ -61,6 +61,11 @@ class FakeBody {
 }
 
 const fetchCalls = [];
+const mailCalls = [];
+const calendarEvents = new Map();
+const calendarInsertCalls = [];
+let exportShouldFail = false;
+const scriptConsole = { log() {}, warn() {}, error() {} };
 const fakeBlob = {
   name: "",
   setName(name) {
@@ -69,7 +74,34 @@ const fakeBlob = {
   },
 };
 const context = vm.createContext({
-  console,
+  Calendar: {
+    Events: {
+      get(calendarId, eventId) {
+        if (!calendarEvents.has(eventId)) throw new Error("404 Not Found");
+        return calendarEvents.get(eventId);
+      },
+      insert(resource, calendarId, options) {
+        const event = {
+          ...resource,
+          id: `generated-${calendarInsertCalls.length + 1}`,
+          status: "confirmed",
+        };
+        calendarInsertCalls.push({ resource, calendarId, options });
+        calendarEvents.set(event.id, event);
+        return event;
+      },
+      list(calendarId, options) {
+        const reservationId = String(options.privateExtendedProperty || "")
+          .replace(/^reservationId=/, "");
+        return {
+          items: [...calendarEvents.values()].filter(
+            (event) => event.extendedProperties?.private?.reservationId === reservationId,
+          ),
+        };
+      },
+    },
+  },
+  console: scriptConsole,
   DocumentApp: {
     HorizontalAlignment: { CENTER: "CENTER" },
     create() {
@@ -81,6 +113,20 @@ const context = vm.createContext({
     },
   },
   MimeType: { PDF: "application/pdf" },
+  MailApp: {
+    sendEmail(message) {
+      mailCalls.push(message);
+    },
+  },
+  PropertiesService: {
+    getScriptProperties: () => ({
+      getProperty(name) {
+        if (name === "BOOKING_NOTIFICATION_EMAILS") return "ops@example.com";
+        if (name === "BOOKING_CALENDAR_ID") return "booking-calendar@example.com";
+        return "";
+      },
+    }),
+  },
   ScriptApp: { getOAuthToken: () => "test-token" },
   SpreadsheetApp: {
     getActiveSpreadsheet: () => ({ getUrl: () => "https://docs.google.com/spreadsheets/d/test/edit" }),
@@ -92,7 +138,7 @@ const context = vm.createContext({
     fetch(url, options) {
       fetchCalls.push({ url, options });
       return {
-        getResponseCode: () => 200,
+        getResponseCode: () => url.includes("/export") && exportShouldFail ? 500 : 200,
         getBlob: () => fakeBlob,
       };
     },
@@ -206,12 +252,60 @@ context.testBooking = booking;
 
 const emailBody = vm.runInContext("createDetailedEmailBody_(testBooking)", context);
 assert.match(emailBody, /已附上依預約資料產生的貓咪住宿服務契約 PDF/);
+const fallbackEmailBody = vm.runInContext("createDetailedEmailBody_(testBooking, false)", context);
+assert.match(fallbackEmailBody, /契約 PDF 未能產生/);
 
 const pdfBlob = vm.runInContext("createContractPdf_(testBooking)", context);
 assert.equal(pdfBlob.name, "貓家日子_寄養服務契約_DWC-20260901-TEST.pdf");
 assert.equal(fetchCalls.length, 2);
 assert.match(fetchCalls[0].url, /\/export\?mimeType=application%2Fpdf$/);
 assert.equal(fetchCalls[1].options.method, "delete");
+
+fetchCalls.length = 0;
+mailCalls.length = 0;
+exportShouldFail = true;
+const fallbackNotification = vm.runInContext(
+  "sendEmailNotificationSafely_(testBooking)",
+  context,
+);
+assert.equal(fallbackNotification.status, "已寄送");
+assert.match(fallbackNotification.note, /契約 PDF 失敗/);
+assert.equal(mailCalls.length, 1);
+assert.equal(mailCalls[0].attachments, undefined);
+assert.match(mailCalls[0].body, /契約 PDF 未能產生/);
+
+let calendarStatus = "";
+let calendarNote = "";
+let storedCalendarEventId = "missing-event";
+context.testBookingSheet = {
+  getRange(row, column) {
+    if (column === 36) {
+      return {
+        setValue(value) { calendarStatus = value; return this; },
+        setNote(value) { calendarNote = value; return this; },
+      };
+    }
+    if (column === 37) {
+      return {
+        getDisplayValue() { return storedCalendarEventId; },
+        setValue(value) { storedCalendarEventId = value; return this; },
+        clearContent() { storedCalendarEventId = ""; return this; },
+      };
+    }
+    throw new Error(`Unexpected calendar column ${column}`);
+  },
+};
+const calendarResult = vm.runInContext(
+  "ensureCalendarEventSafely_(testBookingSheet, 7, testBooking)",
+  context,
+);
+assert.equal(calendarResult.status, "已建立");
+assert.equal(calendarStatus, "已建立");
+assert.equal(calendarNote, "");
+assert.equal(storedCalendarEventId, "generated-1");
+assert.equal(calendarInsertCalls.length, 1);
+assert.equal(calendarInsertCalls[0].resource.id, undefined);
+assert.equal(calendarInsertCalls[0].calendarId, "booking-calendar@example.com");
 
 const inlineScripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
   .map((match) => match[1])
