@@ -7,23 +7,13 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production";
+const RELEASE_ID = "cny-2027-production-r3";
 const PRICING_VERSION = "cny-2027-v1";
+const REGULAR_DEPOSIT = 500;
 
 const EMAIL_CONFIG = Object.freeze({
   recipientsProperty: "BOOKING_NOTIFICATION_EMAILS",
   senderName: "貓家日子預約系統",
-});
-
-const CONTRACT_CONFIG = Object.freeze({
-  title: "貓家日子｜貓咪住宿服務契約",
-  companyName: "貓家日子股份有限公司",
-  taxId: "00110880",
-  address: "新北市三重區三民街68號",
-  phone: "(02) 6604-0468",
-  license: "特寵業字A1140030號",
-  deposit: 500,
-  fallbackHospital: "吉立動物醫院",
 });
 
 const SEASONAL_CONFIG = Object.freeze({
@@ -129,6 +119,10 @@ function doGet() {
     emailNotificationConfigured: Boolean(
       properties.getProperty(EMAIL_CONFIG.recipientsProperty)
     ),
+    paymentAccountConfigured: Boolean(getPaymentAccountNumber_()),
+    calendarTarget: properties.getProperty(CALENDAR_CONFIG.calendarIdProperty)
+      ? "configured"
+      : "primary",
     timestamp: new Date().toISOString(),
   });
 }
@@ -244,11 +238,15 @@ function saveBooking_(payload) {
     ).trim();
     if (notificationStatus !== "已寄送") {
       const submittedAt = bookingSheet.getRange(existingRow, 2).getValue() || new Date();
-      notificationStatus = sendEmailNotificationSafely_({
+      const notificationResult = sendEmailNotificationSafely_({
         ...bookingDetails,
         submittedAt,
       });
-      bookingSheet.getRange(existingRow, 25).setValue(notificationStatus);
+      notificationStatus = notificationResult.status;
+      writeEmailNotificationStatus_(
+        bookingSheet.getRange(existingRow, 25),
+        notificationResult
+      );
     }
     const calendarResult = ensureCalendarEventSafely_(
       bookingSheet,
@@ -371,11 +369,15 @@ function saveBooking_(payload) {
   catSheet.getRange(firstCatRow, 4, catRows.length, 2).setNumberFormat("yyyy/mm/dd");
   catSheet.getRange(firstCatRow, 1, catRows.length, catRows[0].length).setWrap(true);
 
-  const notificationStatus = sendEmailNotificationSafely_({
+  const notificationResult = sendEmailNotificationSafely_({
     ...bookingDetails,
     submittedAt,
   });
-  bookingSheet.getRange(bookingRowNumber, 25).setValue(notificationStatus);
+  const notificationStatus = notificationResult.status;
+  writeEmailNotificationStatus_(
+    bookingSheet.getRange(bookingRowNumber, 25),
+    notificationResult
+  );
 
   const calendarResult = ensureCalendarEventSafely_(
     bookingSheet,
@@ -437,25 +439,32 @@ function ensureCalendarEventSafely_(bookingSheet, bookingRowNumber, booking) {
 
   try {
     const storedEventId = String(eventIdRange.getDisplayValue() || "").trim();
-    const eventId = storedEventId || createCalendarEventId_(booking.reservationId);
-    let event = findCalendarEventByReservationId_(booking.reservationId);
+    let event = storedEventId ? getCalendarEventById_(storedEventId) : null;
+    if (!event) event = findCalendarEventByReservationId_(booking.reservationId);
 
     if (!event) {
       try {
-        event = createCalendarEvent_(eventId, booking);
+        event = createCalendarEvent_(booking);
       } catch (error) {
         event = findCalendarEventByReservationId_(booking.reservationId);
         if (!event) throw error;
       }
     }
 
+    event = getCalendarEventById_(event.id)
+      || findCalendarEventByReservationId_(booking.reservationId);
+    if (!event) throw new Error("Google Calendar 行程建立後無法驗證");
+
     statusRange.setValue("已建立");
+    statusRange.setNote("");
     eventIdRange.setValue(event.id);
     return { status: "已建立", eventId: event.id };
   } catch (error) {
     console.error(error);
     try {
       statusRange.setValue("建立失敗");
+      statusRange.setNote(`建立失敗：${getErrorMessage_(error)}`);
+      eventIdRange.clearContent();
     } catch (statusError) {
       console.error(statusError);
     }
@@ -470,15 +479,14 @@ function getBookingCalendarId_() {
   ).trim() || CALENDAR_CONFIG.defaultCalendarId;
 }
 
-function createCalendarEventId_(reservationId) {
-  const digest = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    reservationId,
-    Utilities.Charset.UTF_8
-  );
-  return `c${digest
-    .map((byte) => (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, "0"))
-    .join("")}`;
+function getCalendarEventById_(eventId) {
+  try {
+    const event = Calendar.Events.get(getBookingCalendarId_(), eventId);
+    return event && event.status !== "cancelled" ? event : null;
+  } catch (error) {
+    if (/\b404\b|not found/i.test(getErrorMessage_(error))) return null;
+    throw error;
+  }
 }
 
 function findCalendarEventByReservationId_(reservationId) {
@@ -490,10 +498,9 @@ function findCalendarEventByReservationId_(reservationId) {
   return result.items && result.items.length ? result.items[0] : null;
 }
 
-function createCalendarEvent_(eventId, booking) {
+function createCalendarEvent_(booking) {
   return Calendar.Events.insert(
     {
-      id: eventId,
       summary: createCalendarEventTitle_(booking),
       description: createCalendarEventDescription_(booking),
       start: {
@@ -565,7 +572,10 @@ function sendEmailNotificationSafely_(booking) {
     const recipients = getNotificationEmails_();
     if (!recipients.length) {
       console.warn("Email notification is not configured");
-      return "寄送失敗";
+      return {
+        status: "寄送失敗",
+        note: "寄送失敗：尚未設定通知收件地址",
+      };
     }
 
     const subject = [
@@ -573,21 +583,35 @@ function sendEmailNotificationSafely_(booking) {
       `${booking.quote.checkIn}–${booking.quote.checkOut}`,
       `${booking.quote.roomCount} 間・${booking.quote.cats} 隻貓`,
     ].join("｜");
-    const body = createDetailedEmailBody_(booking);
-    const contractPdf = createContractPdf_(booking);
-
     MailApp.sendEmail({
       to: recipients.join(","),
       subject,
-      body,
+      body: createDetailedEmailBody_(booking),
       name: EMAIL_CONFIG.senderName,
-      attachments: [contractPdf],
     });
-    return "已寄送";
+    return {
+      status: "已寄送",
+      note: "",
+    };
   } catch (error) {
     console.error(error);
-    return "寄送失敗";
+    return {
+      status: "寄送失敗",
+      note: `寄送失敗：${getErrorMessage_(error)}`,
+    };
   }
+}
+
+function writeEmailNotificationStatus_(range, result) {
+  range.setValue(result.status);
+  range.setNote(result.note || "");
+}
+
+function getErrorMessage_(error) {
+  return String(error && error.message ? error.message : error || "未知錯誤")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
 }
 
 function createDetailedEmailBody_(booking) {
@@ -619,7 +643,7 @@ function createDetailedEmailBody_(booking) {
 
   return [
     "貓家日子收到一筆新的住宿預約。",
-    "本信已附上依預約資料產生的貓咪住宿服務契約 PDF，供店家核對與後續簽署使用。",
+    "契約請依預約資料另行製作。",
     "",
     "【預約資訊】",
     `預約編號：${booking.reservationId}`,
@@ -665,115 +689,6 @@ function createDetailedEmailBody_(booking) {
   ].join("\n");
 }
 
-function createContractPdf_(booking) {
-  const quote = booking.quote;
-  const documentName = `${CONTRACT_CONFIG.title}_${booking.reservationId}`;
-  const document = DocumentApp.create(documentName);
-  const documentId = document.getId();
-  const body = document.getBody();
-
-  try {
-    body.clear();
-    body.setMarginTop(25);
-    body.setMarginBottom(25);
-    body.setMarginLeft(30);
-    body.setMarginRight(30);
-
-    const title = body.appendParagraph(CONTRACT_CONFIG.title);
-    title.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-    title.setSpacingAfter(4);
-    title.editAsText().setBold(true).setFontSize(15);
-
-    const company = body.appendParagraph([
-      CONTRACT_CONFIG.companyName,
-      `統一編號 ${CONTRACT_CONFIG.taxId}`,
-      CONTRACT_CONFIG.license,
-      `${CONTRACT_CONFIG.address}｜${CONTRACT_CONFIG.phone}`,
-    ].join("　"));
-    company.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-    company.setSpacingAfter(6);
-    company.editAsText().setFontSize(8);
-
-    const parties = body.appendParagraph(
-      `立契約書人：甲方（飼主）${booking.owner.name}　乙方（住宿／照護服務者）${CONTRACT_CONFIG.companyName}`
-    );
-    parties.setSpacingAfter(5);
-    parties.editAsText().setBold(true).setFontSize(9);
-
-    const feeText = quote.requiresManualQuote
-      ? `長住專案待專屬報價（折扣前參考總額 NT$${formatInteger_(quote.total)}）`
-      : `住宿費 NT$${formatInteger_(quote.discountedStaySubtotal)}；預估總額 NT$${formatInteger_(quote.total)}`;
-    const detailTable = body.appendTable([
-      ["預約編號", booking.reservationId, "寄養期間", `${formatContractDate_(quote.checkIn)} 至 ${formatContractDate_(quote.checkOut)}，共 ${quote.nights} 晚`],
-      ["住宿房型", quote.roomSummary, "貓咪數量", `${quote.cats} 隻`],
-      ["住宿費用", feeText, "付款方式", `匯款；${createDepositSummary_(quote)}`],
-    ]);
-    detailTable.setBorderWidth(0.75);
-    detailTable.getRow(0).getCell(0).setBackgroundColor("#f0e7dc");
-    detailTable.getRow(0).getCell(2).setBackgroundColor("#f0e7dc");
-    detailTable.getRow(1).getCell(0).setBackgroundColor("#f0e7dc");
-    detailTable.getRow(1).getCell(2).setBackgroundColor("#f0e7dc");
-    detailTable.getRow(2).getCell(0).setBackgroundColor("#f0e7dc");
-    detailTable.getRow(2).getCell(2).setBackgroundColor("#f0e7dc");
-
-    appendContractClause_(body, "第一條　服務內容", "乙方依本契約及甲方提供之照護資料，於上述期間提供住宿、基本餵食、環境清潔與日常觀察。實際房況、入住安排與長住專案金額，仍以乙方確認為準。");
-    appendContractClause_(body, "第二條　健康告知與防疫", "甲方應據實告知貓咪之健康、用藥、攻擊或逃脫等情形，並依乙方規範完成疫苗及體內外驅蟲。甲方知悉寄宿環境仍可能存在上呼吸道感染、黴菌、濕疹、寄生蟲等傳染性疾病風險，且疾病可能因潛伏期較長而於退宿後始出現症狀；非因乙方故意或過失所致者，甲方不得據此請求賠償。");
-    appendContractClause_(body, "第三條　照護與緊急醫療", `乙方依甲方提供之方式餵食及照護。貓咪如有緊急狀況，乙方得先聯繫甲方或緊急聯絡人；情況急迫而無法聯繫時，得逕送甲方指定醫院，該院未營業時改送${CONTRACT_CONFIG.fallbackHospital}。就醫、交通及必要處置費用由甲方負擔。`);
-    appendContractClause_(body, "第四條　預約、取消與提前退宿", createCancellationClause_(quote));
-    appendContractClause_(body, "第五條　責任範圍", "因貓咪自身疾病、年齡、體質、既有傷病、未據實告知之行為，或其他不可歸責於乙方之事由所生損害，乙方不負賠償責任；如損害可歸責於乙方，仍依法律規定負責。");
-    appendContractClause_(body, "第六條　影像分享", "甲方（□同意　□不同意）乙方將寄宿期間之寵物照片分享於貓家日子 Facebook、Instagram 粉絲專頁及其他官方平台，僅作非商業用途。");
-    appendContractClause_(body, "第七條　其他", "因天災、戰爭、政府禁令或其他不可抗力致無法履約時，雙方得協議變更或終止。本契約未盡事宜依相關法令辦理；一式二份，雙方各執一份，自簽署日起生效。");
-
-    const signatureTable = body.appendTable([
-      [
-        `甲方（飼主）\n姓名：${booking.owner.name}\n身分證字號：________________\n聯絡電話：${booking.owner.phone}\n簽章：________________`,
-        `乙方（服務提供者）\n${CONTRACT_CONFIG.companyName}\n統編：${CONTRACT_CONFIG.taxId}\n地址：${CONTRACT_CONFIG.address}\n電話：${CONTRACT_CONFIG.phone}\n${CONTRACT_CONFIG.license}\n簽章：________________`,
-      ],
-    ]);
-    signatureTable.setBorderWidth(0.75);
-
-    const signedDate = body.appendParagraph("簽署日期：中華民國　　　年　　　月　　　日");
-    signedDate.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-    signedDate.setSpacingBefore(4);
-    signedDate.editAsText().setBold(true).setFontSize(10);
-
-    body.editAsText().setFontFamily("Noto Sans TC");
-    document.saveAndClose();
-
-    const exportResponse = UrlFetchApp.fetch(
-      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(documentId)}/export?mimeType=${encodeURIComponent(MimeType.PDF)}`,
-      {
-        headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
-        muteHttpExceptions: true,
-      }
-    );
-    if (exportResponse.getResponseCode() !== 200) {
-      throw new Error("無法將寄養服務契約轉成 PDF");
-    }
-    return exportResponse
-      .getBlob()
-      .setName(`貓家日子_寄養服務契約_${booking.reservationId}.pdf`);
-  } finally {
-    try {
-      document.saveAndClose();
-    } catch (error) {
-      console.warn(error);
-    }
-    try {
-      UrlFetchApp.fetch(
-        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(documentId)}`,
-        {
-          method: "delete",
-          headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
-          muteHttpExceptions: true,
-        }
-      );
-    } catch (error) {
-      console.warn(error);
-    }
-  }
-}
-
 function createStayPeriodSummary_(quote) {
   const parts = [];
   if (quote.regularNights) {
@@ -796,33 +711,6 @@ function createDepositSummary_(quote) {
   return quote.hasHoliday
     ? `春節訂金 NT$${formatInteger_(quote.depositAmount)}（住宿費 50%，店家確認後 ${quote.depositDueDays} 日內支付）`
     : `訂金 NT$${formatInteger_(quote.depositAmount)}（${quote.depositDueDays} 日內支付）`;
-}
-
-function createCancellationClause_(quote) {
-  if (quote.hasHoliday) {
-    return [
-      "乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。",
-      "春節訂金為住宿費百分之五十，經乙方確認房況後，甲方應於三日內完成支付；逾期視同放棄保留。",
-      "於 2026 年 12 月 31 日（含）前取消，訂金全額退還；於 2027 年 1 月 1 日至 1 月 23 日（含）取消，退還訂金百分之五十；自 2027 年 1 月 24 日（含）起取消，訂金不予退還。",
-      "入住後如甲方提前退宿，已支付之住宿費及剩餘住宿費不予退還。甲方未依約付款或違反契約，乙方得終止服務。",
-    ].join("");
-  }
-  return "乙方採全預約制，寄宿期間均為該筆預約保留，原則上不得轉讓或臨時變更。入住後如甲方提前退宿，已支付之住宿費不予退還；入住前解約之手續費依相關法令辦理，最高不超過約定總價百分之五。甲方未依約付款或違反契約，乙方得終止服務。";
-}
-
-function appendContractClause_(body, heading, text) {
-  const paragraph = body.appendParagraph(`${heading}　${text}`);
-  paragraph.setLineSpacing(1.05);
-  paragraph.setSpacingBefore(2);
-  paragraph.setSpacingAfter(1);
-  paragraph.editAsText().setFontSize(8);
-  paragraph.editAsText().setBold(0, heading.length - 1, true);
-  return paragraph;
-}
-
-function formatContractDate_(isoDate) {
-  const parts = isoDate.split("-");
-  return `${parts[0]} 年 ${Number(parts[1])} 月 ${Number(parts[2])} 日`;
 }
 
 function getNotificationEmails_() {
@@ -1120,7 +1008,7 @@ function calculateQuote_(booking) {
     ? requiresManualQuote
       ? null
       : Math.round(discountedStaySubtotal * SEASONAL_CONFIG.depositRate)
-    : CONTRACT_CONFIG.deposit;
+    : REGULAR_DEPOSIT;
   const nightlyRate = hasHoliday && !periods.regularNights
     ? holidayNightlyRate
     : regularNightlyRate;
