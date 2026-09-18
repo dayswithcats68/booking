@@ -16,7 +16,7 @@
    - 執行身分：我
    - 誰可以存取：任何人
 8. 完成授權並部署。沿用原本以 `/exec` 結尾的網址即可。
-9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production"` 與 `"pricingVersion":"cny-2027-v1"`，再發布 GitHub Pages 前端。
+9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r2"`、`"pricingVersion":"cny-2027-v1"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若指定次要日曆，另確認 `"calendarTarget":"configured"`，再發布 GitHub Pages 前端。
 
 請勿把實際收件地址貼到 `config.js`、GitHub 或任何前端檔案。原本的 `LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_NOTIFICATION_TO` 已不再使用，可以從指令碼屬性刪除。
 
@@ -34,7 +34,7 @@
 【新預約】王小明｜2026-08-10–2026-08-12｜2 間・4 隻貓
 ```
 
-信件內文包含完整預約明細：預約與入住時段、飼主與緊急聯絡資料、各房型與房間數量、伙食方案、費用拆分、每隻貓咪的飲食／健康／照護資料、其他補充及 Google Sheet 連結，並附上自動帶入寄養期間、住宿房型、貓咪數量與住宿費用的契約 PDF。PDF 匯出後，暫存 Google 文件會立即刪除。契約 PDF 或 Email 寄送失敗不會影響預約寫入，但第 25 欄會記錄「寄送失敗」。
+信件內文包含完整預約明細：預約與入住時段、飼主與緊急聯絡資料、各房型與房間數量、伙食方案、費用拆分、每隻貓咪的飲食／健康／照護資料、其他補充及 Google Sheet 連結，並附上自動帶入寄養期間、住宿房型、貓咪數量與住宿費用的契約 PDF。PDF 匯出後，暫存 Google 文件會立即刪除。若 PDF 產生失敗，系統仍會寄出無附件通知信，並把原因寫入第 25 欄的儲存格備註；只有 Email 本身寄送失敗時，第 25 欄才會記錄「寄送失敗」。
 
 新版後端首次收到預約時，會保留「住宿預約」工作表第 27–31 欄的舊版伙食欄位，以第 32–34 欄記錄「加購數量」、「伙食計價單位」與「單位價格」，第 35 欄記錄「房間數量」，第 36–37 欄記錄「Google Calendar 狀態」與「Google Calendar 行程 ID」，第 38–45 欄記錄計價版本、平日／春節晚數與小計、訂金金額。既有第 1–26 欄及 Email 狀態欄位置不變。
 
@@ -48,7 +48,7 @@
 |---|---|
 | `BOOKING_CALENDAR_ID` | 目標 Google Calendar 的日曆 ID |
 
-同一預約編號會產生固定且合法的 Calendar 行程 ID；重送時後端會先讀取該行程，不會重複建立。Calendar 建立失敗不會阻止預約寫入；第 36 欄會顯示「建立失敗」，可用相同預約編號重試補建。
+Calendar 行程 ID 由 Google 產生。重送時後端會先用已儲存的行程 ID 與預約編號查找，找不到時才補建，不會把不存在的行程誤標為成功。Calendar 建立失敗不會阻止預約寫入；第 36 欄會顯示「建立失敗」並在儲存格備註記錄原因，可用相同預約編號重試補建。
 
 `appsscript.json` 將 Calendar 權限限制為 `calendar.events.owned`：可查看、建立、修改與刪除 Apps Script 執行帳號所擁有日曆中的行程，但不能更改日曆分享設定。
 
