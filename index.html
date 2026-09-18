@@ -2860,9 +2860,11 @@
         }
 
         function formatMoney(amount) {
+          const numericAmount = Number(amount);
+          if (!Number.isFinite(numericAmount)) return "金額待確認";
           return `NT$${new Intl.NumberFormat("zh-TW", {
             maximumFractionDigits: 0,
-          }).format(amount)}`;
+          }).format(numericAmount)}`;
         }
 
         function formatDate(isoDate, includeYear = false) {
@@ -3246,7 +3248,7 @@
               : "";
           output.manualQuoteMessage.hidden = !quote.requiresManualQuote;
           output.daycareLabel.textContent = quote.lateCheckoutUnavailable
-            ? "春節期間不提供"
+            ? "退宿日逢春節不提供"
             : quote.isLate
               ? `${formatMoney(quote.regularNightlyRate)} × 50%`
               : "15:00（含）前退宿";
@@ -3266,15 +3268,15 @@
           springDateStatus.hidden = !(quote.hasHoliday || quote.checkoutDuringHoliday);
           springDateStatus.textContent = quote.hasHoliday
             ? `含春節 ${quote.holidayNights} 晚、平日 ${quote.regularNights} 晚；2027/2/11 為最後一個春節計價晚。`
-            : "全程按平日價；退宿日逢春節起日，無法延後退宿。";
+            : "全程按平日價；退宿日落在 2/3–2/11，無法延後退宿。";
           lateCheckoutInput.disabled = quote.lateCheckoutUnavailable;
           lateCheckoutInput.closest("label").classList.toggle("is-unavailable", quote.lateCheckoutUnavailable);
           if (quote.lateCheckoutUnavailable) {
             form.querySelector('input[name="checkoutTime"][value="ontime"]').checked = true;
           }
           checkoutPolicyNote.textContent = quote.lateCheckoutUnavailable
-            ? "春節期間不提供臨時安親或延後退宿。"
-            : "非春節退宿超過 15:00，依一般規則計費。";
+            ? "退宿日落在 2/3–2/11，不提供臨時安親或延後退宿。"
+            : "退宿日不在春節檔期；超過 15:00 依一般規則計費。";
           output.depositNote.textContent = quote.hasHoliday
             ? quote.depositAmount === null
               ? "30 晚以上另行報價，金額確認後通知訂金。"

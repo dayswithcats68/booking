@@ -12,7 +12,7 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r3";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r4";/);
 assert.doesNotMatch(code, /integration-preview/);
 const mailCalls = [];
 const calendarEvents = new Map();
@@ -139,6 +139,38 @@ assert.equal(mixedSpring.regularNights, 7);
 assert.equal(mixedSpring.holidayNights, 5);
 assert.equal(mixedSpring.discountName, "95 折");
 assert.equal(mixedSpring.discountedStaySubtotal, Math.round(850 * 7 * 0.95) + 1300 * 5);
+
+const lateAfterHoliday = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "small", roomCount: 1 }],
+  roomCount: 1,
+  cats: 2,
+  checkIn: "2027-02-01",
+  checkOut: "2027-02-18",
+  isLate: true,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(lateAfterHoliday.extraCatFeePerNight, 200);
+assert.equal(lateAfterHoliday.regularNightlyRate, 1050);
+assert.equal(lateAfterHoliday.lateCheckoutUnavailable, false);
+assert.equal(lateAfterHoliday.isLate, true);
+assert.equal(lateAfterHoliday.daycareFee, 525);
+assert.equal(lateAfterHoliday.total, 22005);
+
+const lateOnFebruary12 = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "small", roomCount: 1 }],
+  roomCount: 1,
+  cats: 1,
+  checkIn: "2027-02-07",
+  checkOut: "2027-02-12",
+  isLate: true,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(lateOnFebruary12.checkoutDuringHoliday, false);
+assert.equal(lateOnFebruary12.lateCheckoutUnavailable, false);
+assert.equal(lateOnFebruary12.isLate, true);
+assert.equal(lateOnFebruary12.daycareFee, 425);
 
 for (const source of [
   `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-01", checkOut: "2027-02-06", isLate: false, mealPlanKey: "none", pricingVersion: PRICING_VERSION })`,

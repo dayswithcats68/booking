@@ -54,7 +54,7 @@
     const holidaySubtotal = holidayNightlyRate * periods.holidayNights;
     const hasHoliday = periods.holidayNights > 0;
     const checkoutDuringHoliday = quote.checkOut >= season.start && quote.checkOut <= season.lastNight;
-    const lateCheckoutUnavailable = hasHoliday || checkoutDuringHoliday;
+    const lateCheckoutUnavailable = checkoutDuringHoliday;
     const requiresManualQuote = periods.nights >= 30;
     const eligibleNights = hasHoliday ? periods.regularNights : periods.nights;
     const discountMultiplier = requiresManualQuote
@@ -86,6 +86,7 @@
       checkoutDuringHoliday,
       lateCheckoutUnavailable,
       meetsMinimumStay: !hasHoliday || periods.holidayNights >= season.minimumHolidayNights,
+      extraCatFeePerNight,
       regularNightlyRate,
       holidayNightlyRate,
       regularSubtotal,
