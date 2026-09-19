@@ -12,6 +12,7 @@
     pricingVersion: "cny-2027-v2",
     start: "2027-02-03",
     lastNight: "2027-02-11",
+    bookingOpenAt: "2026-09-27T12:00:00+08:00",
     lateCheckoutStart: "2027-02-10",
     holidayBaseRates: Object.freeze({ small: 1450, jump: 1800, family: 2200 }),
     extraCatRate: 200,
@@ -41,7 +42,7 @@
     return { nights, holidayNights, regularNights: nights - holidayNights };
   }
 
-  function apply(quote, season = DEFAULT_SEASON) {
+  function apply(quote, season = DEFAULT_SEASON, now = Date.now()) {
     const periods = splitNights(quote.checkIn, quote.checkOut, season);
     const holidayBaseRate = quote.rooms.reduce(
       (sum, room) => sum
@@ -54,6 +55,7 @@
     const regularSubtotal = regularNightlyRate * periods.regularNights;
     const holidaySubtotal = holidayNightlyRate * periods.holidayNights;
     const hasHoliday = periods.holidayNights > 0;
+    const bookingOpen = Number(now) >= Date.parse(season.bookingOpenAt);
     const checkoutDuringHoliday = quote.checkOut >= season.start && quote.checkOut <= season.lastNight;
     const lateCheckoutUnavailable = checkoutDuringHoliday
       && quote.checkOut < season.lateCheckoutStart;
@@ -90,7 +92,10 @@
       hasHoliday,
       checkoutDuringHoliday,
       lateCheckoutUnavailable,
+      bookingOpen,
       meetsMinimumStay: !hasHoliday || periods.holidayNights >= season.minimumHolidayNights,
+      canSubmitSeasonal: !hasHoliday
+        || (bookingOpen && periods.holidayNights >= season.minimumHolidayNights),
       extraCatFeePerNight,
       regularNightlyRate,
       holidayNightlyRate,

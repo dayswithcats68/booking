@@ -16,8 +16,16 @@ const roomTypes = {
   jump: { name: "眺跳家庭房", baseRate: 1100, maxCatsPerRoom: 4 },
   family: { name: "探險家庭房", baseRate: 1300, maxCatsPerRoom: 6 },
 };
+const bookingOpenAt = Date.parse("2026-09-27T12:00:00+08:00");
 
-function quote({ roomKey = "small", cats = 1, checkIn = "2027-02-03", checkOut = "2027-02-08", isLate = false } = {}) {
+function quote({
+  roomKey = "small",
+  cats = 1,
+  checkIn = "2027-02-03",
+  checkOut = "2027-02-08",
+  isLate = false,
+  now = bookingOpenAt,
+} = {}) {
   const room = roomTypes[roomKey];
   return seasonal.apply({
     rooms: [{ roomKey, count: 1, ...room }],
@@ -29,14 +37,19 @@ function quote({ roomKey = "small", cats = 1, checkIn = "2027-02-03", checkOut =
     checkOut,
     isLate,
     mealSubtotal: 0,
-  });
+  }, seasonal.DEFAULT_SEASON, now);
 }
 
 assert.equal(quote().holidayNightlyRate, 1450);
+assert.equal(quote({ now: bookingOpenAt - 1 }).bookingOpen, false);
+assert.equal(quote({ now: bookingOpenAt - 1 }).canSubmitSeasonal, false);
+assert.equal(quote({ now: bookingOpenAt }).bookingOpen, true);
+assert.equal(quote({ now: bookingOpenAt }).canSubmitSeasonal, true);
 assert.equal(quote().depositAmount, 3625);
 assert.equal(quote({ roomKey: "jump", cats: 4 }).holidayNightlyRate, 2400);
 assert.equal(quote({ roomKey: "family", cats: 6 }).holidayNightlyRate, 3200);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-06" }).meetsMinimumStay, false);
+assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-06" }).canSubmitSeasonal, false);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-08" }).meetsMinimumStay, true);
 assert.equal(quote({ checkIn: "2027-02-11", checkOut: "2027-02-12" }).holidayNights, 1);
 assert.equal(quote({ checkIn: "2027-02-12", checkOut: "2027-02-13" }).holidayNights, 0);
@@ -103,6 +116,9 @@ assert.doesNotMatch(html, /住宿分段明細/);
 assert.match(html, />平日每晚</);
 assert.match(html, />春節每晚</);
 assert.match(html, /2\/10 起才開放 15:00 後退宿/);
+assert.match(html, /2026\/9\/27 中午 12:00 起開放至少 5 個春節計價晚的預約/);
+assert.match(html, /未滿 5 個春節計價晚的預約尚未開放，開放時間另行公告/);
+assert.match(html, /scheduleSeasonalBookingOpen\(\)/);
 assert.match(html, /NT\$ 1,450/);
 assert.match(html, /NT\$ 1,800/);
 assert.match(html, /NT\$ 2,200/);

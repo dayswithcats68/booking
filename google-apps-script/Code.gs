@@ -32,6 +32,7 @@ const SEASONAL_CONFIG = Object.freeze({
   label: "2027 春節",
   start: "2027-02-03",
   lastNight: "2027-02-11",
+  bookingOpenAt: "2026-09-27T12:00:00+08:00",
   lateCheckoutStart: "2027-02-10",
   holidayBaseRates: Object.freeze({
     small: 1450,
@@ -1031,6 +1032,7 @@ function calculateQuote_(booking) {
   const extraCatFeePerNight = EXTRA_CAT_RATE * extraCatCount;
   const periods = splitSeasonNights_(checkIn, checkOut);
   const hasHoliday = periods.holidayNights > 0;
+  const bookingOpen = Date.now() >= Date.parse(SEASONAL_CONFIG.bookingOpenAt);
   const checkoutDuringHoliday = checkOut >= SEASONAL_CONFIG.start
     && checkOut <= SEASONAL_CONFIG.lastNight;
   const lateCheckoutUnavailable = checkoutDuringHoliday
@@ -1040,8 +1042,11 @@ function calculateQuote_(booking) {
   if (hasHoliday && clientPricingVersion !== PRICING_VERSION) {
     throw new Error("春節價格已更新，請重新整理預約頁面後再送出");
   }
+  if (hasHoliday && !bookingOpen) {
+    throw new Error("春節住宿將於 2026/9/27 12:00 起開放預約");
+  }
   if (hasHoliday && periods.holidayNights < SEASONAL_CONFIG.minimumHolidayNights) {
-    throw new Error(`春節住宿至少需包含 ${SEASONAL_CONFIG.minimumHolidayNights} 個春節計價晚`);
+    throw new Error(`未滿 ${SEASONAL_CONFIG.minimumHolidayNights} 個春節計價晚的預約，開放時間另行公告`);
   }
   if (isLate && lateCheckoutUnavailable) {
     throw new Error("2027/2/10 起才提供 15:00 後退宿");
@@ -1106,6 +1111,7 @@ function calculateQuote_(booking) {
     hasHoliday,
     checkoutDuringHoliday,
     lateCheckoutUnavailable,
+    bookingOpen,
     regularNights: periods.regularNights,
     holidayNights: periods.holidayNights,
     cats,

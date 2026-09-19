@@ -1802,7 +1802,7 @@
         </p>
         <div class="spring-meta">
           <span>每間基本價含 1 隻貓</span>
-          <span>至少 5 個春節計價晚</span>
+          <span>9/27 12:00 開放 5 晚以上預約</span>
         </div>
         <details class="spring-price-details" open>
           <summary>春節每晚價目</summary>
@@ -1824,7 +1824,7 @@
         <details class="spring-price-details">
           <summary>訂金、最低住宿與取消規則</summary>
           <div class="policy-copy">
-            <p><strong>預約條件</strong><br />春節至少住 5 個計價晚。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。未滿 5 晚的開放時間另行公告。</p>
+            <p><strong>預約條件</strong><br />2026/9/27 中午 12:00 起開放至少 5 個春節計價晚的預約。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。未滿 5 晚的開放時間另行公告。</p>
             <p><strong>取消與退款</strong></p>
             <ul>
               <li>2026/12/31（含）前取消：訂金全額退款。</li>
@@ -3350,10 +3350,15 @@
               ? "春節不折扣；平日 7–13 晚享 95 折、14–29 晚享 9 折。"
               : "長住折扣僅適用住宿費。";
 
-          minimumStayError.textContent = quote.meetsMinimumStay
+          const seasonalBookingUnavailable = quote.hasHoliday && !quote.canSubmitSeasonal;
+          minimumStayError.textContent = !quote.hasHoliday
             ? ""
-            : "春節至少需住 5 個計價晚；目前僅可試算，不能送出預約。";
-          minimumStayError.classList.toggle("is-visible", !quote.meetsMinimumStay);
+            : !quote.bookingOpen
+              ? "春節住宿將於 2026/9/27 中午 12:00 開放預約，目前可先試算費用。"
+              : !quote.meetsMinimumStay
+                ? "未滿 5 個春節計價晚的預約尚未開放，開放時間另行公告。"
+                : "";
+          minimumStayError.classList.toggle("is-visible", seasonalBookingUnavailable);
           springDateStatus.hidden = !(quote.hasHoliday || quote.checkoutDuringHoliday);
           springDateStatus.textContent = quote.hasHoliday
             ? `含春節 ${quote.holidayNights} 晚、平日 ${quote.regularNights} 晚；2027/2/11 為最後一個春節計價晚。`
@@ -3372,8 +3377,17 @@
               : `春節訂金 ${formatMoney(quote.depositAmount)}（住宿費 50%），店家確認後 ${quote.depositDueDays} 日內支付。`
             : `訂金 ${formatMoney(quote.depositAmount)}，店家確認後 ${quote.depositDueDays} 日內支付。`;
 
-          startReservationButton.disabled = !quote.meetsMinimumStay;
+          startReservationButton.disabled = !quote.canSubmitSeasonal;
           setDateError();
+        }
+
+        function scheduleSeasonalBookingOpen() {
+          const delay = Date.parse(SEASON.bookingOpenAt) - Date.now();
+          if (delay <= 0) return;
+          window.setTimeout(() => {
+            updateCalculator();
+            scheduleSeasonalBookingOpen();
+          }, Math.min(delay + 250, 2_147_483_647));
         }
 
         function updateMealQuantityControls(state, nights) {
@@ -4051,6 +4065,7 @@
         renderSpringPriceTable();
         initializeDates();
         updateCalculator();
+        scheduleSeasonalBookingOpen();
 
         // 保留純計算函式，方便日後自動測試與調整房價。
         window.CatStayCalculator = Object.freeze({
