@@ -12,9 +12,14 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r6";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r7";/);
 assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
+assert.match(html, /name="bookingLitter"/);
+assert.doesNotMatch(html, /name="cat\$\{index\}Litter"/);
+assert.doesNotMatch(html, /name="cat\$\{index\}Diet"/);
+assert.match(html, /placeholder="例如：3歲、5個月"/);
+assert.match(html, /除夕（2027\/2\/5）最晚 17:00/);
 const mailCalls = [];
 const calendarEvents = new Map();
 const calendarInsertCalls = [];
@@ -284,18 +289,45 @@ assert.equal(vm.runInContext('safeText_(" =2+2")', context), "' =2+2");
 context.testCat = {
   name: "咪咪",
   sex: "母",
-  age: 3,
+  age: "3歲、5個月",
   neutered: "已結紮",
-  litter: "礦砂",
-  diet: "正常",
   health: "無",
   special: "無",
 };
 assert.equal(vm.runInContext("normalizeCat_(testCat, 1).sex", context), "母");
+assert.equal(vm.runInContext("normalizeCat_(testCat, 1).age", context), "3歲、5個月");
 context.testCat.sex = "女";
 assert.throws(
   () => vm.runInContext("normalizeCat_(testCat, 1)", context),
   /性別不正確/,
+);
+assert.equal(
+  vm.runInContext('requiredOption_("礦砂", "貓砂種類", CAT_LITTER_OPTIONS)', context),
+  "礦砂",
+);
+assert.throws(
+  () => vm.runInContext('requiredOption_("其他", "貓砂種類", CAT_LITTER_OPTIONS)', context),
+  /貓砂種類不正確/,
+);
+
+vm.runInContext(
+  'validateBookingTimes_("17:00", "15:00", false, "2027-02-05")',
+  context,
+);
+assert.throws(
+  () => vm.runInContext(
+    'validateBookingTimes_("17:01", "15:00", false, "2027-02-05")',
+    context,
+  ),
+  /除夕入住時間不可晚於 17:00/,
+);
+vm.runInContext(
+  'validateBookingTimes_("17:01", "15:00", false, "2027-02-04")',
+  context,
+);
+vm.runInContext(
+  'validateBookingTimes_("17:01", "15:00", false, "2027-02-06")',
+  context,
 );
 
 context.testEvent = {
@@ -345,14 +377,13 @@ const booking = {
   owner: { name: "王小明", phone: "0912-345-678" },
   arrivalTime: "15:00",
   departureTime: "15:00",
+  litter: "礦砂",
   quote,
   cats: [{
     name: "咪咪",
     sex: "母",
-    age: 3,
+    age: "3歲、5個月",
     neutered: "已結紮",
-    litter: "礦砂",
-    diet: "正常",
     health: "無",
     special: "無",
   }],
@@ -364,6 +395,9 @@ context.testBooking = booking;
 const emailBody = vm.runInContext("createDetailedEmailBody_(testBooking)", context);
 assert.match(emailBody, /契約請依預約資料另行製作/);
 assert.doesNotMatch(emailBody, /PDF|附件/);
+assert.match(emailBody, /貓砂種類：礦砂/);
+assert.match(emailBody, /年齡：3歲、5個月/);
+assert.doesNotMatch(emailBody, /飲食習慣與餵食方式/);
 
 const notification = vm.runInContext(
   "sendEmailNotificationSafely_(testBooking)",
