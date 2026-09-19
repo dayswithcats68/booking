@@ -1574,13 +1574,6 @@
         text-align: center;
       }
 
-      .version-tag {
-        display: block;
-        margin-top: 4px;
-        color: #a49d92;
-        font-size: 0.66rem;
-      }
-
       @media (max-width: 860px) {
         .page-shell {
           width: min(680px, calc(100% - 28px));
@@ -1797,7 +1790,6 @@
         </div>
         <p class="masthead-note">
           <span class="license-number">特寵業字A1140030號</span>
-          <span>查看春節價目、試算費用並送出預約資料。</span>
         </p>
       </header>
 
@@ -2663,8 +2655,7 @@
       </section>
 
       <p class="footer-note">
-        試算僅供參考；預約須經店家確認房況、入住安排與金額後成立。
-        <span class="version-tag" id="versionTag">客用試算頁面</span>
+        本試算頁面之金額僅供預估參考，請各位家長們聯繫貓家日子 Line 官方帳號@days.cat，進一步確認入住細節與實際金額。
       </p>
       <footer class="contact-footer" aria-label="貓家日子聯絡資訊">
         <p class="contact-company">貓家日子股份有限公司</p>
@@ -2717,7 +2708,6 @@
           },
         });
 
-        const APP_VERSION = "2027 春節住宿";
         const APP_CONFIG = window.CAT_STAY_CONFIG || {};
         const BOOKING_ENDPOINT = String(APP_CONFIG.bookingEndpoint || "").trim();
         const TURNSTILE_SITE_KEY = String(APP_CONFIG.turnstileSiteKey || "").trim();
@@ -2847,7 +2837,6 @@
           mealFee: document.getElementById("mealFee"),
           formulaNote: document.getElementById("formulaNote"),
           depositNote: document.getElementById("depositNote"),
-          versionTag: document.getElementById("versionTag"),
           reservationRoom: document.getElementById("reservationRoom"),
           reservationRooms: document.getElementById("reservationRooms"),
           reservationDates: document.getElementById("reservationDates"),
@@ -4061,7 +4050,6 @@
 
         renderSpringPriceTable();
         initializeDates();
-        output.versionTag.textContent = APP_VERSION;
         updateCalculator();
 
         // 保留純計算函式，方便日後自動測試與調整房價。
