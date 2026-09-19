@@ -12,7 +12,7 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r7";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r8";/);
 assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
 assert.match(html, /name="bookingLitter"/);
@@ -225,33 +225,33 @@ assert.equal(lateOnFebruary12.isLate, true);
 assert.equal(lateOnFebruary12.daycareNightlyRate, 850);
 assert.equal(lateOnFebruary12.daycareFee, 425);
 
-const lateOnFebruary10 = vm.runInContext(`calculateQuote_({
+const lateOnFebruary9 = vm.runInContext(`calculateQuote_({
   rooms: [{ roomKey: "small", roomCount: 1 }],
   roomCount: 1,
   cats: 1,
-  checkIn: "2027-02-05",
-  checkOut: "2027-02-10",
+  checkIn: "2027-02-04",
+  checkOut: "2027-02-09",
   isLate: true,
   mealPlanKey: "none",
   pricingVersion: PRICING_VERSION
 })`, context);
-assert.equal(lateOnFebruary10.checkoutDuringHoliday, true);
-assert.equal(lateOnFebruary10.lateCheckoutUnavailable, false);
-assert.equal(lateOnFebruary10.daycareNightlyRate, 1450);
-assert.equal(lateOnFebruary10.daycareFee, 725);
+assert.equal(lateOnFebruary9.checkoutDuringHoliday, true);
+assert.equal(lateOnFebruary9.lateCheckoutUnavailable, false);
+assert.equal(lateOnFebruary9.daycareNightlyRate, 1450);
+assert.equal(lateOnFebruary9.daycareFee, 725);
 
 assert.throws(
   () => vm.runInContext(`calculateQuote_({
     rooms: [{ roomKey: "small", roomCount: 1 }],
     roomCount: 1,
     cats: 1,
-    checkIn: "2027-02-04",
-    checkOut: "2027-02-09",
+    checkIn: "2027-02-03",
+    checkOut: "2027-02-08",
     isLate: true,
     mealPlanKey: "none",
     pricingVersion: PRICING_VERSION
   })`, context),
-  /2\/10 起才提供/,
+  /2\/9 起才提供/,
 );
 
 for (const source of [
