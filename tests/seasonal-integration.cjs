@@ -32,10 +32,10 @@ function quote({ roomKey = "small", cats = 1, checkIn = "2027-02-03", checkOut =
   });
 }
 
-assert.equal(quote().holidayNightlyRate, 1300);
-assert.equal(quote().depositAmount, 3250);
-assert.equal(quote({ roomKey: "jump", cats: 4 }).holidayNightlyRate, 2250);
-assert.equal(quote({ roomKey: "family", cats: 6 }).holidayNightlyRate, 2950);
+assert.equal(quote().holidayNightlyRate, 1450);
+assert.equal(quote().depositAmount, 3625);
+assert.equal(quote({ roomKey: "jump", cats: 4 }).holidayNightlyRate, 2400);
+assert.equal(quote({ roomKey: "family", cats: 6 }).holidayNightlyRate, 3200);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-06" }).meetsMinimumStay, false);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-08" }).meetsMinimumStay, true);
 assert.equal(quote({ checkIn: "2027-02-11", checkOut: "2027-02-12" }).holidayNights, 1);
@@ -52,7 +52,8 @@ assert.equal(lateAfterHoliday.regularNightlyRate, 1050);
 assert.equal(lateAfterHoliday.lateCheckoutUnavailable, false);
 assert.equal(lateAfterHoliday.isLate, true);
 assert.equal(lateAfterHoliday.daycareFee, 525);
-assert.equal(lateAfterHoliday.total, 22005);
+assert.equal(lateAfterHoliday.daycareNightlyRate, 1050);
+assert.equal(lateAfterHoliday.total, 23355);
 
 const lateOnFebruary12 = quote({
   checkIn: "2027-02-07",
@@ -62,10 +63,22 @@ const lateOnFebruary12 = quote({
 assert.equal(lateOnFebruary12.checkoutDuringHoliday, false);
 assert.equal(lateOnFebruary12.lateCheckoutUnavailable, false);
 assert.equal(lateOnFebruary12.isLate, true);
+assert.equal(lateOnFebruary12.daycareNightlyRate, 850);
+
+const lateOnFebruary10 = quote({
+  checkIn: "2027-02-05",
+  checkOut: "2027-02-10",
+  isLate: true,
+});
+assert.equal(lateOnFebruary10.checkoutDuringHoliday, true);
+assert.equal(lateOnFebruary10.lateCheckoutUnavailable, false);
+assert.equal(lateOnFebruary10.isLate, true);
+assert.equal(lateOnFebruary10.daycareNightlyRate, 1450);
+assert.equal(lateOnFebruary10.daycareFee, 725);
 
 const lateDuringHoliday = quote({
-  checkIn: "2027-02-06",
-  checkOut: "2027-02-11",
+  checkIn: "2027-02-04",
+  checkOut: "2027-02-09",
   isLate: true,
 });
 assert.equal(lateDuringHoliday.checkoutDuringHoliday, true);
@@ -76,7 +89,7 @@ assert.equal(lateDuringHoliday.daycareFee, 0);
 const mixed = quote({ checkIn: "2027-01-27", checkOut: "2027-02-08" });
 assert.equal(mixed.regularNights, 7);
 assert.equal(mixed.holidayNights, 5);
-assert.equal(mixed.discountedStaySubtotal, Math.round(850 * 7 * 0.95) + 1300 * 5);
+assert.equal(mixed.discountedStaySubtotal, Math.round(850 * 7 * 0.95) + 1450 * 5);
 
 assert.match(html, /id="jumpRoomToggle"/);
 assert.match(html, /id="jumpRoomCount"/);
@@ -89,7 +102,10 @@ assert.match(html, />住宿明細</);
 assert.doesNotMatch(html, /住宿分段明細/);
 assert.match(html, />平日每晚</);
 assert.match(html, />春節每晚</);
-assert.match(html, /退宿日落在 2\/3–2\/11，不提供臨時安親或延後退宿/);
+assert.match(html, /2\/10 起才開放 15:00 後退宿/);
+assert.match(html, /NT\$ 1,450/);
+assert.match(html, /NT\$ 1,800/);
+assert.match(html, /NT\$ 2,200/);
 assert.match(html, /if \(!Number\.isFinite\(numericAmount\)\) return "金額待確認"/);
 assert.match(html, /本試算頁面之金額僅供預估參考，請各位家長們聯繫貓家日子 Line 官方帳號@days\.cat，進一步確認入住細節與實際金額。/);
 assert.doesNotMatch(html, /查看春節價目、試算費用並送出預約資料。/);

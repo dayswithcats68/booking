@@ -12,7 +12,8 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r5";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r6";/);
+assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
 const mailCalls = [];
 const calendarEvents = new Map();
@@ -116,9 +117,9 @@ const springSmall = vm.runInContext(`calculateQuote_({
 })`, context);
 assert.equal(springSmall.holidayNights, 5);
 assert.equal(springSmall.regularNights, 0);
-assert.equal(springSmall.holidayNightlyRate, 1300);
-assert.equal(springSmall.discountedStaySubtotal, 6500);
-assert.equal(springSmall.depositAmount, 3250);
+assert.equal(springSmall.holidayNightlyRate, 1450);
+assert.equal(springSmall.discountedStaySubtotal, 7250);
+assert.equal(springSmall.depositAmount, 3625);
 assert.equal(springSmall.depositDueDays, 3);
 
 const springJump = vm.runInContext(`calculateQuote_({
@@ -131,8 +132,8 @@ const springJump = vm.runInContext(`calculateQuote_({
   mealPlanKey: "none",
   pricingVersion: PRICING_VERSION
 })`, context);
-assert.equal(springJump.holidayNightlyRate, 2250);
-assert.equal(springJump.total, 11250);
+assert.equal(springJump.holidayNightlyRate, 2400);
+assert.equal(springJump.total, 12000);
 
 const springFamily = vm.runInContext(`calculateQuote_({
   rooms: [{ roomKey: "family", roomCount: 1 }],
@@ -145,8 +146,8 @@ const springFamily = vm.runInContext(`calculateQuote_({
   pricingVersion: PRICING_VERSION
 })`, context);
 assert.equal(springFamily.holidayNights, 5);
-assert.equal(springFamily.holidayNightlyRate, 2950);
-assert.equal(springFamily.total, 14750);
+assert.equal(springFamily.holidayNightlyRate, 3200);
+assert.equal(springFamily.total, 16000);
 
 const mixedSpring = vm.runInContext(`calculateQuote_({
   rooms: [{ roomKey: "small", roomCount: 1 }],
@@ -161,7 +162,7 @@ const mixedSpring = vm.runInContext(`calculateQuote_({
 assert.equal(mixedSpring.regularNights, 7);
 assert.equal(mixedSpring.holidayNights, 5);
 assert.equal(mixedSpring.discountName, "95 折");
-assert.equal(mixedSpring.discountedStaySubtotal, Math.round(850 * 7 * 0.95) + 1300 * 5);
+assert.equal(mixedSpring.discountedStaySubtotal, Math.round(850 * 7 * 0.95) + 1450 * 5);
 
 const lateAfterHoliday = vm.runInContext(`calculateQuote_({
   rooms: [{ roomKey: "small", roomCount: 1 }],
@@ -178,7 +179,8 @@ assert.equal(lateAfterHoliday.regularNightlyRate, 1050);
 assert.equal(lateAfterHoliday.lateCheckoutUnavailable, false);
 assert.equal(lateAfterHoliday.isLate, true);
 assert.equal(lateAfterHoliday.daycareFee, 525);
-assert.equal(lateAfterHoliday.total, 22005);
+assert.equal(lateAfterHoliday.daycareNightlyRate, 1050);
+assert.equal(lateAfterHoliday.total, 23355);
 
 const lateOnFebruary12 = vm.runInContext(`calculateQuote_({
   rooms: [{ roomKey: "small", roomCount: 1 }],
@@ -193,7 +195,37 @@ const lateOnFebruary12 = vm.runInContext(`calculateQuote_({
 assert.equal(lateOnFebruary12.checkoutDuringHoliday, false);
 assert.equal(lateOnFebruary12.lateCheckoutUnavailable, false);
 assert.equal(lateOnFebruary12.isLate, true);
+assert.equal(lateOnFebruary12.daycareNightlyRate, 850);
 assert.equal(lateOnFebruary12.daycareFee, 425);
+
+const lateOnFebruary10 = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "small", roomCount: 1 }],
+  roomCount: 1,
+  cats: 1,
+  checkIn: "2027-02-05",
+  checkOut: "2027-02-10",
+  isLate: true,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(lateOnFebruary10.checkoutDuringHoliday, true);
+assert.equal(lateOnFebruary10.lateCheckoutUnavailable, false);
+assert.equal(lateOnFebruary10.daycareNightlyRate, 1450);
+assert.equal(lateOnFebruary10.daycareFee, 725);
+
+assert.throws(
+  () => vm.runInContext(`calculateQuote_({
+    rooms: [{ roomKey: "small", roomCount: 1 }],
+    roomCount: 1,
+    cats: 1,
+    checkIn: "2027-02-04",
+    checkOut: "2027-02-09",
+    isLate: true,
+    mealPlanKey: "none",
+    pricingVersion: PRICING_VERSION
+  })`, context),
+  /2\/10 起才提供/,
+);
 
 for (const source of [
   `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-01", checkOut: "2027-02-06", isLate: false, mealPlanKey: "none", pricingVersion: PRICING_VERSION })`,

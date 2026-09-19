@@ -9,8 +9,8 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r5";
-const PRICING_VERSION = "cny-2027-v1";
+const RELEASE_ID = "cny-2027-production-r6";
+const PRICING_VERSION = "cny-2027-v2";
 const REGULAR_DEPOSIT = 500;
 const CREATE_BOOKING_ACTION = "createBooking";
 const MAX_REQUEST_BYTES = 64 * 1024;
@@ -32,10 +32,11 @@ const SEASONAL_CONFIG = Object.freeze({
   label: "2027 春節",
   start: "2027-02-03",
   lastNight: "2027-02-11",
+  lateCheckoutStart: "2027-02-10",
   holidayBaseRates: Object.freeze({
-    small: 1300,
-    jump: 1650,
-    family: 1950,
+    small: 1450,
+    jump: 1800,
+    family: 2200,
   }),
   minimumHolidayNights: 5,
   depositRate: 0.5,
@@ -1032,7 +1033,8 @@ function calculateQuote_(booking) {
   const hasHoliday = periods.holidayNights > 0;
   const checkoutDuringHoliday = checkOut >= SEASONAL_CONFIG.start
     && checkOut <= SEASONAL_CONFIG.lastNight;
-  const lateCheckoutUnavailable = checkoutDuringHoliday;
+  const lateCheckoutUnavailable = checkoutDuringHoliday
+    && checkOut < SEASONAL_CONFIG.lateCheckoutStart;
   const clientPricingVersion = optionalText_(booking.pricingVersion, 40);
 
   if (hasHoliday && clientPricingVersion !== PRICING_VERSION) {
@@ -1042,7 +1044,7 @@ function calculateQuote_(booking) {
     throw new Error(`春節住宿至少需包含 ${SEASONAL_CONFIG.minimumHolidayNights} 個春節計價晚`);
   }
   if (isLate && lateCheckoutUnavailable) {
-    throw new Error("退宿日落在春節檔期，恕不提供延長退宿時間");
+    throw new Error("2027/2/10 起才提供 15:00 後退宿");
   }
 
   const regularNightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
@@ -1074,7 +1076,10 @@ function calculateQuote_(booking) {
   const regularAfterDiscount = Math.round(regularSubtotal * discountMultiplier);
   const discountedStaySubtotal = regularAfterDiscount + holidaySubtotal;
   const discountAmount = staySubtotal - discountedStaySubtotal;
-  const daycareFee = isLate ? regularNightlyRate * DAYCARE_RATE : 0;
+  const daycareNightlyRate = checkoutDuringHoliday
+    ? holidayNightlyRate
+    : regularNightlyRate;
+  const daycareFee = isLate ? daycareNightlyRate * DAYCARE_RATE : 0;
   const depositAmount = hasHoliday
     ? requiresManualQuote
       ? null
@@ -1129,6 +1134,7 @@ function calculateQuote_(booking) {
     requiresManualQuote,
     discountAmount,
     discountedStaySubtotal,
+    daycareNightlyRate,
     daycareFee,
     depositAmount,
     depositDueDays: hasHoliday ? SEASONAL_CONFIG.depositDueDays : 7,
