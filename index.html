@@ -1798,17 +1798,15 @@
         <p class="spring-kicker">2027 LUNAR NEW YEAR · 春節住宿</p>
         <h2 id="springHeading">把新年假期，安心交給貓家。</h2>
         <p class="spring-description">
-          春節住宿檔期 <strong id="seasonRange">2027/2/3–2/11</strong>；2/11 為最後一個春節計價晚。
+          春節住宿檔期 <strong id="seasonRange">2027年2月3日–2月11日</strong>；2月11日為最後一個春節計價晚。
         </p>
         <div class="spring-meta">
-          <span>每間基本價含 1 隻貓</span>
-          <span>9/27 12:00 開放 5 晚以上預約</span>
+          <span>9月27日中午12:00起優先開放住宿5晚以上之預約</span>
         </div>
         <details class="spring-price-details" open>
           <summary>春節每晚價目</summary>
           <div class="table-scroll">
             <table class="spring-price-table">
-              <caption>單間每晚，已含加貓費；— 表示超過容量。</caption>
               <thead>
                 <tr>
                   <th scope="col">入住貓數</th>
@@ -1824,12 +1822,12 @@
         <details class="spring-price-details">
           <summary>訂金、最低住宿與取消規則</summary>
           <div class="policy-copy">
-            <p><strong>預約條件</strong><br />2026/9/27 中午 12:00 起開放至少 5 個春節計價晚的預約。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。未滿 5 晚的開放時間另行公告。</p>
+            <p><strong>預約條件</strong><br />2026年9月27日中午12:00起優先開放住宿5晚以上之預約。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。未滿 5 晚的開放時間另行公告。</p>
             <p><strong>取消與退款</strong></p>
             <ul>
-              <li>2026/12/31（含）前取消：訂金全額退款。</li>
-              <li>2027/1/1–1/23（含）取消：退還訂金 50%。</li>
-              <li>2027/1/24（含）起取消：訂金不予退款。</li>
+              <li>2026年12月31日（含）前取消：訂金全額退款。</li>
+              <li>2027年1月1日–1月23日（含）取消：退還訂金 50%。</li>
+              <li>2027年1月24日（含）起取消：訂金不予退款。</li>
               <li>入住後提前退宿：不退還剩餘住宿費。</li>
             </ul>
             <p>春節計價晚不適用長住折扣、其他優惠或折價券；跨檔期的平日晚數仍依一般規則獨立計算。</p>
@@ -3369,14 +3367,14 @@
           minimumStayError.textContent = !quote.hasHoliday
             ? ""
             : !quote.bookingOpen
-              ? "春節住宿將於 2026/9/27 中午 12:00 開放預約，目前可先試算費用。"
+              ? "春節住宿將於 2026年9月27日中午12:00 開放預約，目前可先試算費用。"
               : !quote.meetsMinimumStay
                 ? "未滿 5 個春節計價晚的預約尚未開放，開放時間另行公告。"
                 : "";
           minimumStayError.classList.toggle("is-visible", seasonalBookingUnavailable);
           springDateStatus.hidden = !(quote.hasHoliday || quote.checkoutDuringHoliday);
           springDateStatus.textContent = quote.hasHoliday
-            ? `含春節 ${quote.holidayNights} 晚、平日 ${quote.regularNights} 晚；2027/2/11 為最後一個春節計價晚。`
+            ? `含春節 ${quote.holidayNights} 晚、平日 ${quote.regularNights} 晚；2027年2月11日為最後一個春節計價晚。`
             : "全程按平日價。";
           lateCheckoutInput.disabled = quote.lateCheckoutUnavailable;
           lateCheckoutInput.closest("label").classList.toggle("is-unavailable", quote.lateCheckoutUnavailable);
