@@ -16,6 +16,11 @@ assert.match(code, /const RELEASE_ID = "cny-2027-production-r7";/);
 assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
 assert.match(html, /name="bookingLitter"/);
+assert.ok(
+  html.indexOf('id="catForms"') < html.indexOf('id="bookingLitter"'),
+  "Reservation litter field must follow the per-cat details",
+);
+assert.doesNotMatch(html, /整筆預約只需填寫一次/);
 assert.doesNotMatch(html, /name="cat\$\{index\}Litter"/);
 assert.doesNotMatch(html, /name="cat\$\{index\}Diet"/);
 assert.match(html, /placeholder="例如：3歲、5個月"/);
