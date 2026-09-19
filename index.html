@@ -2135,7 +2135,7 @@
                 </label>
               </div>
             </fieldset>
-            <p class="date-caption" id="checkoutPolicyNote">2/10 起可選 15:00 後退宿，費用為單晚房價 50%。</p>
+            <p class="date-caption" id="checkoutPolicyNote">2/9 起可選 15:00 後退宿，費用為單晚房價 50%。</p>
           </section>
 
           <section class="section" aria-labelledby="mealHeading">
@@ -3352,7 +3352,7 @@
               : "";
           output.manualQuoteMessage.hidden = !quote.requiresManualQuote;
           output.daycareLabel.textContent = quote.lateCheckoutUnavailable
-            ? "2/10 起開放"
+            ? "2/9 起開放"
             : quote.isLate
               ? `${formatMoney(quote.daycareNightlyRate)} × 50%`
               : "15:00（含）前退宿";
@@ -3384,7 +3384,7 @@
             form.querySelector('input[name="checkoutTime"][value="ontime"]').checked = true;
           }
           checkoutPolicyNote.textContent = quote.lateCheckoutUnavailable
-            ? "2/10 起才開放 15:00 後退宿。"
+            ? "2/9 起才開放 15:00 後退宿。"
             : "超過 15:00 加收單晚房價 50%，最晚退宿時間為 20:30。";
           output.depositNote.textContent = quote.hasHoliday
             ? quote.depositAmount === null
