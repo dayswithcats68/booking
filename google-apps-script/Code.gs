@@ -9,7 +9,7 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r6";
+const RELEASE_ID = "cny-2027-production-r7";
 const PRICING_VERSION = "cny-2027-v2";
 const REGULAR_DEPOSIT = 500;
 const CREATE_BOOKING_ACTION = "createBooking";
@@ -20,7 +20,8 @@ const RESERVATION_ID_PATTERN = /^DWC-\d{8}-\d{6}-[0-9A-F]{32}$/;
 const PHONE_PATTERN = /^(?=(?:\D*\d){8,15}\D*$)\+?[0-9() -]{8,20}$/;
 const CAT_SEX_OPTIONS = Object.freeze(["公", "母", "不確定"]);
 const CAT_NEUTERED_OPTIONS = Object.freeze(["已結紮", "未結紮"]);
-const CAT_LITTER_OPTIONS = Object.freeze(["礦砂", "豆腐砂", "其他"]);
+const CAT_LITTER_OPTIONS = Object.freeze(["礦砂", "豆腐砂"]);
+const LEGACY_CAT_LITTER_OPTIONS = Object.freeze(["礦砂", "豆腐砂", "其他"]);
 
 const EMAIL_CONFIG = Object.freeze({
   recipientsProperty: "BOOKING_NOTIFICATION_EMAILS",
@@ -94,6 +95,8 @@ const EXTRA_CAT_RATE = 200;
 const DAYCARE_RATE = 0.5;
 const MAX_CANS_PER_CAT_PER_DAY = 20;
 const EARLIEST_ARRIVAL_TIME = "10:00";
+const LUNAR_NEW_YEARS_EVE = "2027-02-05";
+const LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME = "17:00";
 const STANDARD_CHECKOUT_TIME = "15:00";
 const LATEST_DEPARTURE_TIME = "20:30";
 const MEAL_HEADERS = Object.freeze([
@@ -285,13 +288,20 @@ function saveBooking_(payload) {
   const arrivalTime = requiredTime_(booking.arrivalTime, "入住時間");
   const departureTime = requiredTime_(booking.departureTime, "退宿時間");
   const quote = calculateQuote_(booking);
-  validateBookingTimes_(arrivalTime, departureTime, quote.isLate);
+  validateBookingTimes_(arrivalTime, departureTime, quote.isLate, quote.checkIn);
   const additionalNotes = optionalText_(payload.additionalNotes, 300);
 
   if (cats.length !== quote.cats) {
     throw new Error("貓咪資料數量與預約數量不一致");
   }
 
+  // Accept the former per-cat value during deployment so already-open browser tabs keep working.
+  const legacyLitter = cats.length && cats[0] && cats[0].litter;
+  const litter = requiredOption_(
+    booking.litter || legacyLitter,
+    "貓砂種類",
+    booking.litter ? CAT_LITTER_OPTIONS : LEGACY_CAT_LITTER_OPTIONS
+  );
   const normalizedCats = cats.map((cat, index) => normalizeCat_(cat, index + 1));
   const spreadsheet = getBookingSpreadsheet_();
   const bookingSheet = spreadsheet.getSheetByName(CONFIG.bookingSheet);
@@ -318,6 +328,7 @@ function saveBooking_(payload) {
     },
     arrivalTime,
     departureTime,
+    litter,
     quote,
     cats: normalizedCats,
     additionalNotes,
@@ -445,10 +456,10 @@ function saveBooking_(payload) {
     index + 1,
     safeText_(cat.name),
     safeText_(cat.sex),
-    cat.age,
+    safeText_(cat.age),
     safeText_(cat.neutered),
-    safeText_(cat.litter),
-    safeText_(cat.diet),
+    safeText_(litter),
+    "",
     safeText_(cat.health),
     safeText_(cat.special),
   ]);
@@ -722,10 +733,8 @@ function createDetailedEmailBody_(booking) {
   const catSections = booking.cats.flatMap((cat, index) => [
     `第 ${index + 1} 隻｜${cat.name}`,
     `性別：${cat.sex}`,
-    `年齡：${cat.age} 歲`,
+    `年齡：${cat.age}`,
     `結紮：${cat.neutered}`,
-    `貓砂：${cat.litter}`,
-    `飲食習慣與餵食方式：${cat.diet}`,
     `健康狀況、過敏或慢性病：${cat.health}`,
     `特殊需求與照護提醒：${cat.special}`,
     "",
@@ -745,6 +754,7 @@ function createDetailedEmailBody_(booking) {
     `住宿晚數：${quote.nights} 晚`,
     `退宿時段：${quote.isLate ? "超過 15:00" : "15:00（含）以前"}`,
     `貓咪數量：${quote.cats} 隻`,
+    `貓砂種類：${booking.litter}`,
     `伙食加購：${mealLine}`,
     "",
     "【費用明細】",
@@ -1173,11 +1183,6 @@ function normalizeCat_(cat, index) {
   if (!cat || typeof cat !== "object" || Array.isArray(cat)) {
     throw new Error(`第 ${index} 隻貓咪資料不完整`);
   }
-  const age = Number(cat.age);
-  if (!Number.isFinite(age) || age < 0 || age > 30) {
-    throw new Error(`第 ${index} 隻貓咪年齡不正確`);
-  }
-
   return {
     name: requiredSingleLineText_(cat.name, `第 ${index} 隻貓咪姓名`, 40),
     sex: requiredOption_(
@@ -1185,18 +1190,12 @@ function normalizeCat_(cat, index) {
       `第 ${index} 隻貓咪性別`,
       CAT_SEX_OPTIONS
     ),
-    age,
+    age: requiredSingleLineText_(cat.age, `第 ${index} 隻貓咪年齡`, 30),
     neutered: requiredOption_(
       cat.neutered,
       `第 ${index} 隻貓咪結紮狀態`,
       CAT_NEUTERED_OPTIONS
     ),
-    litter: requiredOption_(
-      cat.litter,
-      `第 ${index} 隻貓砂種類`,
-      CAT_LITTER_OPTIONS
-    ),
-    diet: requiredText_(cat.diet, `第 ${index} 隻飲食資料`, 220),
     health: requiredText_(cat.health, `第 ${index} 隻健康資料`, 220),
     special: requiredText_(cat.special, `第 ${index} 隻特殊需求`, 220),
   };
@@ -1233,9 +1232,17 @@ function requiredTime_(value, label) {
   return text;
 }
 
-function validateBookingTimes_(arrivalTime, departureTime, isLate) {
+function validateBookingTimes_(arrivalTime, departureTime, isLate, checkIn) {
   if (arrivalTime < EARLIEST_ARRIVAL_TIME) {
     throw new Error(`入住時間不可早於 ${EARLIEST_ARRIVAL_TIME}`);
+  }
+  if (
+    checkIn === LUNAR_NEW_YEARS_EVE
+    && arrivalTime > LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME
+  ) {
+    throw new Error(
+      `除夕入住時間不可晚於 ${LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME}`
+    );
   }
   if (departureTime > LATEST_DEPARTURE_TIME) {
     throw new Error(`退宿時間不可晚於 ${LATEST_DEPARTURE_TIME}`);
