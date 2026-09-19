@@ -2352,7 +2352,8 @@
             <section class="reservation-section" aria-labelledby="scheduleHeading">
               <h3 class="reservation-section-title" id="scheduleHeading">入住與退宿時間</h3>
               <p class="reservation-section-note">
-                最早 10:00 入住、最晚 20:30 退宿；實際時段以店家確認為準。
+                最早 10:00 入住、最晚 20:30 退宿；除夕（2027/2/5）最晚 17:00
+                入住。實際時段以店家確認為準。
               </p>
               <div class="form-grid">
                 <label class="field-group">
@@ -2366,7 +2367,7 @@
                     min="10:00"
                     required
                   />
-                  <span class="field-help">最早 10:00。</span>
+                  <span class="field-help" id="arrivalTimeHelp">最早 10:00。</span>
                 </label>
                 <label class="field-group">
                   <span class="input-label">退宿時間<span class="required-mark">＊</span></span>
@@ -2456,8 +2457,19 @@
             <section class="reservation-section" aria-labelledby="catsFormHeading">
               <h3 class="reservation-section-title" id="catsFormHeading">入住貓咪資料</h3>
               <p class="reservation-section-note">
-                系統依貓咪數量產生欄位；沒有健康或特殊需求請填「無」。
+                貓砂整筆預約填一次；飲食與餵食方式於入住時確認。沒有健康或特殊需求請填「無」。
               </p>
+              <div class="form-grid">
+                <label class="field-group full-width">
+                  <span class="input-label">貓砂種類<span class="required-mark">＊</span></span>
+                  <select class="select-input" id="bookingLitter" name="bookingLitter" required>
+                    <option value="">請選擇</option>
+                    <option value="礦砂">礦砂</option>
+                    <option value="豆腐砂">豆腐砂</option>
+                  </select>
+                  <span class="field-help">整筆預約只需填寫一次。</span>
+                </label>
+              </div>
               <div class="cat-forms" id="catForms"></div>
             </section>
 
@@ -2721,6 +2733,8 @@
         const MAX_CANS_PER_CAT_PER_DAY = 20;
         const STANDARD_CHECKOUT_TIME = "15:00";
         const LATEST_DEPARTURE_TIME = "20:30";
+        const LUNAR_NEW_YEARS_EVE = "2027-02-05";
+        const LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME = "17:00";
         const LONG_STAY_PROJECT_MIN_NIGHTS = 30;
         const LONG_STAY_TIERS = Object.freeze([
           { minimumNights: 14, multiplier: 0.9, name: "9 折", description: "14–29 晚・9 折" },
@@ -2779,6 +2793,8 @@
         const backToEstimateButton = document.getElementById("backToEstimate");
         const reservationForm = document.getElementById("reservationForm");
         const catForms = document.getElementById("catForms");
+        const arrivalTimeInput = document.getElementById("arrivalTime");
+        const arrivalTimeHelp = document.getElementById("arrivalTimeHelp");
         const departureTimeInput = document.getElementById("departureTime");
         const departureTimeHelp = document.getElementById("departureTimeHelp");
         const reservationStatus = document.getElementById("reservationStatus");
@@ -3500,6 +3516,17 @@
           output.reservationTotal.textContent = formatMoney(quote.total);
           output.reservationQuoteNote.hidden = !quote.requiresManualQuote;
 
+          if (quote.checkIn === LUNAR_NEW_YEARS_EVE) {
+            arrivalTimeInput.max = LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME;
+            arrivalTimeHelp.textContent = "除夕最晚 17:00 入住。";
+            if (arrivalTimeInput.value > LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME) {
+              arrivalTimeInput.value = LUNAR_NEW_YEARS_EVE_LATEST_ARRIVAL_TIME;
+            }
+          } else {
+            arrivalTimeInput.removeAttribute("max");
+            arrivalTimeHelp.textContent = "最早 10:00。";
+          }
+
           if (quote.isLate) {
             departureTimeInput.min = "15:01";
             departureTimeInput.max = LATEST_DEPARTURE_TIME;
@@ -3547,15 +3574,11 @@
                   <input
                     class="text-input"
                     name="cat${index}Age"
-                    type="number"
-                    inputmode="decimal"
-                    min="0"
-                    max="30"
-                    step="0.1"
-                    placeholder="例如：3"
+                    type="text"
+                    maxlength="30"
+                    placeholder="例如：3歲、5個月"
                     required
                   />
-                  <span class="field-help">未滿一歲可填 0.5 等小數。</span>
                 </label>
                 <label class="field-group">
                   <span class="input-label">是否結紮<span class="required-mark">＊</span></span>
@@ -3564,25 +3587,6 @@
                     <option value="已結紮">已結紮</option>
                     <option value="未結紮">未結紮</option>
                   </select>
-                </label>
-                <label class="field-group full-width">
-                  <span class="input-label">貓砂種類<span class="required-mark">＊</span></span>
-                  <select class="select-input" name="cat${index}Litter" required>
-                    <option value="">請選擇</option>
-                    <option value="礦砂">礦砂</option>
-                    <option value="豆腐砂">豆腐砂</option>
-                    <option value="其他">其他</option>
-                  </select>
-                </label>
-                <label class="field-group full-width">
-                  <span class="input-label">飲食習慣與餵食方式<span class="required-mark">＊</span></span>
-                  <textarea
-                    class="textarea-input"
-                    name="cat${index}Diet"
-                    maxlength="220"
-                    placeholder="例如：早晚各一餐；乾糧每餐 30g，晚餐加半罐濕食"
-                    required
-                  ></textarea>
                 </label>
                 <label class="field-group full-width">
                   <span class="input-label">健康狀況、過敏或慢性病<span class="required-mark">＊</span></span>
@@ -3670,10 +3674,8 @@
             return {
               name: getReservationValue(formData, `cat${index}Name`, ""),
               sex: getReservationValue(formData, `cat${index}Sex`, ""),
-              age: Number(getReservationValue(formData, `cat${index}Age`, "")),
+              age: getReservationValue(formData, `cat${index}Age`, ""),
               neutered: getReservationValue(formData, `cat${index}Neutered`, ""),
-              litter: getReservationValue(formData, `cat${index}Litter`, ""),
-              diet: getReservationValue(formData, `cat${index}Diet`, ""),
               health: getReservationValue(formData, `cat${index}Health`, ""),
               special: getReservationValue(formData, `cat${index}Special`, ""),
             };
@@ -3706,6 +3708,7 @@
               mealPlanKey: quote.mealPlanKey,
               mealQuantity: quote.mealQuantity,
               mealQuantityScope: quote.mealQuantityScope,
+              litter: getReservationValue(formData, "bookingLitter", ""),
               arrivalTime: getReservationValue(formData, "arrivalTime", ""),
               departureTime: getReservationValue(formData, "departureTime", ""),
             },
