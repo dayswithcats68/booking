@@ -48,7 +48,7 @@ jobs:
           const health = JSON.parse(fs.readFileSync('/tmp/backend-health.json', 'utf8'));
           if (health.ok !== true) throw new Error('Production backend health check failed');
           const compatibleReleases = new Set([
-            'cny-2027-production-r7',
+            'cny-2027-production-r8',
           ]);
           if (!compatibleReleases.has(health.release)) {
             throw new Error(`Unexpected backend release: ${health.release || 'missing'}`);
