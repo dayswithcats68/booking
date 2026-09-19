@@ -78,20 +78,20 @@ assert.equal(lateOnFebruary12.lateCheckoutUnavailable, false);
 assert.equal(lateOnFebruary12.isLate, true);
 assert.equal(lateOnFebruary12.daycareNightlyRate, 850);
 
-const lateOnFebruary10 = quote({
-  checkIn: "2027-02-05",
-  checkOut: "2027-02-10",
-  isLate: true,
-});
-assert.equal(lateOnFebruary10.checkoutDuringHoliday, true);
-assert.equal(lateOnFebruary10.lateCheckoutUnavailable, false);
-assert.equal(lateOnFebruary10.isLate, true);
-assert.equal(lateOnFebruary10.daycareNightlyRate, 1450);
-assert.equal(lateOnFebruary10.daycareFee, 725);
-
-const lateDuringHoliday = quote({
+const lateOnFebruary9 = quote({
   checkIn: "2027-02-04",
   checkOut: "2027-02-09",
+  isLate: true,
+});
+assert.equal(lateOnFebruary9.checkoutDuringHoliday, true);
+assert.equal(lateOnFebruary9.lateCheckoutUnavailable, false);
+assert.equal(lateOnFebruary9.isLate, true);
+assert.equal(lateOnFebruary9.daycareNightlyRate, 1450);
+assert.equal(lateOnFebruary9.daycareFee, 725);
+
+const lateDuringHoliday = quote({
+  checkIn: "2027-02-03",
+  checkOut: "2027-02-08",
   isLate: true,
 });
 assert.equal(lateDuringHoliday.checkoutDuringHoliday, true);
@@ -115,7 +115,7 @@ assert.match(html, />住宿明細</);
 assert.doesNotMatch(html, /住宿分段明細/);
 assert.match(html, />平日每晚</);
 assert.match(html, />春節每晚</);
-assert.match(html, /2\/10 起才開放 15:00 後退宿/);
+assert.match(html, /2\/9 起才開放 15:00 後退宿/);
 assert.match(html, /2026\/9\/27 中午 12:00 起開放至少 5 個春節計價晚的預約/);
 assert.match(html, /未滿 5 個春節計價晚的預約尚未開放，開放時間另行公告/);
 assert.match(html, /scheduleSeasonalBookingOpen\(\)/);
