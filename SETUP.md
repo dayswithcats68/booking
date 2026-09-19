@@ -18,7 +18,7 @@
    - 執行身分：我
    - 誰可以存取：任何人
 8. 完成授權並部署。沿用原本以 `/exec` 結尾的網址即可。
-9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r7"`、`"pricingVersion":"cny-2027-v2"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若已啟用 Turnstile，另確認 `"botProtectionConfigured":true`；若指定次要日曆，再確認 `"calendarTarget":"configured"`。
+9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r8"`、`"pricingVersion":"cny-2027-v2"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若已啟用 Turnstile，另確認 `"botProtectionConfigured":true`；若指定次要日曆，再確認 `"calendarTarget":"configured"`。
 
 請勿把實際收件地址貼到 `config.js`、GitHub 或任何前端檔案。原本的 `LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_NOTIFICATION_TO` 已不再使用，可以從指令碼屬性刪除。
 
@@ -103,4 +103,4 @@ r5 將預約編號改為 128-bit 隨機值，因此這次先發布 GitHub Pages�
     - 2026/9/27 12:00（台灣時間）前只能試算，不能送出含春節計價晚的預約。
     - 2026/9/27 12:00 起自動開放至少 5 個春節計價晚的預約；未滿 5 晚仍不可送出，開放時間另行公告。
 16. 確認春節訂金為住宿費 50%，店家確認後 3 日內支付；取消退款區間包含 2026/12/31、2027/1/23 與 2027/1/24 當日。
-17. 確認退宿日為 2027/2/3–2/9 時無法選擇 15:00 後退宿；2/10–2/11 可選且依當晚房價 50% 計費；2/12 起仍依平日房價 50% 計費。
+17. 確認退宿日為 2027/2/3–2/8 時無法選擇 15:00 後退宿；2/9–2/11 可選且依當晚房價 50% 計費；2/12 起仍依平日房價 50% 計費。
