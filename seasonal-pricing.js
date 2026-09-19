@@ -13,7 +13,7 @@
     start: "2027-02-03",
     lastNight: "2027-02-11",
     bookingOpenAt: "2026-09-27T12:00:00+08:00",
-    lateCheckoutStart: "2027-02-10",
+    lateCheckoutStart: "2027-02-09",
     holidayBaseRates: Object.freeze({ small: 1450, jump: 1800, family: 2200 }),
     extraCatRate: 200,
     minimumHolidayNights: 5,
