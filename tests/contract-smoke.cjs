@@ -105,6 +105,22 @@ const quote = vm.runInContext(`calculateQuote_({
   mealPlanKey: "none"
 })`, context);
 
+vm.runInContext('Date.now = () => Date.parse("2026-09-27T03:59:59Z")', context);
+assert.throws(
+  () => vm.runInContext(`calculateQuote_({
+    rooms: [{ roomKey: "small", roomCount: 1 }],
+    roomCount: 1,
+    cats: 1,
+    checkIn: "2027-02-03",
+    checkOut: "2027-02-08",
+    isLate: false,
+    mealPlanKey: "none",
+    pricingVersion: PRICING_VERSION
+  })`, context),
+  /2026\/9\/27 12:00 起開放預約/,
+);
+vm.runInContext('Date.now = () => Date.parse("2026-09-27T04:00:00Z")', context);
+
 const springSmall = vm.runInContext(`calculateQuote_({
   rooms: [{ roomKey: "small", roomCount: 1 }],
   roomCount: 1,
@@ -116,6 +132,7 @@ const springSmall = vm.runInContext(`calculateQuote_({
   pricingVersion: PRICING_VERSION
 })`, context);
 assert.equal(springSmall.holidayNights, 5);
+assert.equal(springSmall.bookingOpen, true);
 assert.equal(springSmall.regularNights, 0);
 assert.equal(springSmall.holidayNightlyRate, 1450);
 assert.equal(springSmall.discountedStaySubtotal, 7250);
