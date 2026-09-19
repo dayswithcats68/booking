@@ -9,10 +9,11 @@
   const DEFAULT_SEASON = Object.freeze({
     key: "cny-2027",
     label: "2027 春節",
-    pricingVersion: "cny-2027-v1",
+    pricingVersion: "cny-2027-v2",
     start: "2027-02-03",
     lastNight: "2027-02-11",
-    holidayBaseRates: Object.freeze({ small: 1300, jump: 1650, family: 1950 }),
+    lateCheckoutStart: "2027-02-10",
+    holidayBaseRates: Object.freeze({ small: 1450, jump: 1800, family: 2200 }),
     extraCatRate: 200,
     minimumHolidayNights: 5,
     depositRate: 0.5,
@@ -54,7 +55,8 @@
     const holidaySubtotal = holidayNightlyRate * periods.holidayNights;
     const hasHoliday = periods.holidayNights > 0;
     const checkoutDuringHoliday = quote.checkOut >= season.start && quote.checkOut <= season.lastNight;
-    const lateCheckoutUnavailable = checkoutDuringHoliday;
+    const lateCheckoutUnavailable = checkoutDuringHoliday
+      && quote.checkOut < season.lateCheckoutStart;
     const requiresManualQuote = periods.nights >= 30;
     const eligibleNights = hasHoliday ? periods.regularNights : periods.nights;
     const discountMultiplier = requiresManualQuote
@@ -67,7 +69,10 @@
     const regularAfterDiscount = Math.round(regularSubtotal * discountMultiplier);
     const discountAmount = regularSubtotal - regularAfterDiscount;
     const discountedStaySubtotal = regularAfterDiscount + holidaySubtotal;
-    const daycareFee = quote.isLate && !lateCheckoutUnavailable ? regularNightlyRate * 0.5 : 0;
+    const daycareNightlyRate = checkoutDuringHoliday
+      ? holidayNightlyRate
+      : regularNightlyRate;
+    const daycareFee = quote.isLate && !lateCheckoutUnavailable ? daycareNightlyRate * 0.5 : 0;
     const discountName = requiresManualQuote
       ? "長住專案（待專屬報價）"
       : discountMultiplier === 0.9
@@ -103,6 +108,7 @@
         : `${eligibleNights} 晚・${discountName}`,
       discountedStaySubtotal,
       requiresManualQuote,
+      daycareNightlyRate,
       daycareFee,
       depositAmount: hasHoliday && !requiresManualQuote
         ? Math.round(discountedStaySubtotal * season.depositRate)
