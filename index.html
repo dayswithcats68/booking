@@ -2416,6 +2416,17 @@
                     required
                   />
                 </label>
+                <label class="field-group full-width">
+                  <span class="input-label">LINE 名稱<span class="required-mark">＊</span></span>
+                  <input
+                    class="text-input"
+                    id="ownerLineName"
+                    name="ownerLineName"
+                    type="text"
+                    maxlength="50"
+                    required
+                  />
+                </label>
                 <label class="field-group">
                   <span class="input-label">緊急聯絡人姓名（選填）</span>
                   <input
@@ -3686,6 +3697,7 @@
             owner: {
               name: getReservationValue(formData, "ownerName", ""),
               phone: getReservationValue(formData, "ownerPhone", ""),
+              lineName: getReservationValue(formData, "ownerLineName", ""),
               emergencyName: getReservationValue(formData, "emergencyName", ""),
               emergencyPhone: getReservationValue(formData, "emergencyPhone", ""),
               emergencyRelation: getReservationValue(formData, "emergencyRelation", ""),
