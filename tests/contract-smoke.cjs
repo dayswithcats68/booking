@@ -12,7 +12,7 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r8";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r9";/);
 assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
 assert.match(html, /name="bookingLitter"/);
@@ -21,6 +21,12 @@ assert.ok(
   "Reservation litter field must follow the per-cat details",
 );
 assert.doesNotMatch(html, /整筆預約只需填寫一次/);
+assert.match(html, /name="ownerLineName"/);
+assert.match(html, /LINE 名稱<span class="required-mark">＊<\/span>/);
+assert.match(html, /lineName: getReservationValue\(formData, "ownerLineName", ""\)/);
+assert.match(code, /const OWNER_LINE_NAME_COLUMN = 46;/);
+assert.match(code, /requiredSingleLineText_\(owner\.lineName, "LINE 名稱", 50\)/);
+assert.match(code, /getRange\(bookingRowNumber, OWNER_LINE_NAME_COLUMN\)\.setValue\(safeText_\(ownerLineName\)\)/);
 assert.doesNotMatch(html, /name="cat\$\{index\}Litter"/);
 assert.doesNotMatch(html, /name="cat\$\{index\}Diet"/);
 assert.match(html, /placeholder="例如：3歲、5個月"/);
@@ -379,7 +385,7 @@ scriptProperties.TURNSTILE_ALLOWED_HOSTNAMES = "";
 
 const booking = {
   reservationId: "DWC-20260901-100000-0123456789ABCDEF0123456789ABCDEF",
-  owner: { name: "王小明", phone: "0912-345-678" },
+  owner: { name: "王小明", phone: "0912-345-678", lineName: "小明的 LINE" },
   arrivalTime: "15:00",
   departureTime: "15:00",
   litter: "礦砂",
@@ -401,6 +407,7 @@ const emailBody = vm.runInContext("createDetailedEmailBody_(testBooking)", conte
 assert.match(emailBody, /契約請依預約資料另行製作/);
 assert.doesNotMatch(emailBody, /PDF|附件/);
 assert.match(emailBody, /貓砂種類：礦砂/);
+assert.match(emailBody, /LINE 名稱：小明的 LINE/);
 assert.match(emailBody, /年齡：3歲、5個月/);
 assert.doesNotMatch(emailBody, /飲食習慣與餵食方式/);
 
@@ -413,6 +420,7 @@ assert.equal(notification.note, "");
 assert.equal(mailCalls.length, 1);
 assert.equal(mailCalls[0].attachments, undefined);
 assert.match(mailCalls[0].body, /契約請依預約資料另行製作/);
+assert.match(mailCalls[0].body, /LINE 名稱：小明的 LINE/);
 
 let calendarStatus = "";
 let calendarNote = "";
