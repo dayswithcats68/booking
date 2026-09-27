@@ -9,7 +9,7 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r8";
+const RELEASE_ID = "cny-2027-production-r9";
 const PRICING_VERSION = "cny-2027-v2";
 const REGULAR_DEPOSIT = 500;
 const CREATE_BOOKING_ACTION = "createBooking";
@@ -123,6 +123,8 @@ const PRICING_DETAIL_HEADERS = Object.freeze([
   "春節小計",
   "訂金金額",
 ]);
+const OWNER_LINE_NAME_COLUMN = 46;
+const OWNER_LINE_NAME_HEADER = "LINE 名稱";
 
 function doGet() {
   const properties = PropertiesService.getScriptProperties();
@@ -278,6 +280,7 @@ function saveBooking_(payload) {
 
   const ownerName = requiredSingleLineText_(owner.name, "飼主姓名", 50);
   const ownerPhone = requiredPhone_(owner.phone, "聯絡電話");
+  const ownerLineName = requiredSingleLineText_(owner.lineName, "LINE 名稱", 50);
   const emergencyName = optionalSingleLineText_(owner.emergencyName, "緊急聯絡人姓名", 50);
   const emergencyPhone = optionalPhone_(owner.emergencyPhone, "緊急聯絡人電話");
   const emergencyRelation = optionalSingleLineText_(
@@ -316,12 +319,14 @@ function saveBooking_(payload) {
   bookingSheet
     .getRange(1, PRICING_DETAIL_COLUMN, 1, PRICING_DETAIL_HEADERS.length)
     .setValues([PRICING_DETAIL_HEADERS]);
+  bookingSheet.getRange(1, OWNER_LINE_NAME_COLUMN).setValue(OWNER_LINE_NAME_HEADER);
 
   const bookingDetails = {
     reservationId,
     owner: {
       name: ownerName,
       phone: ownerPhone,
+      lineName: ownerLineName,
       emergencyName,
       emergencyPhone,
       emergencyRelation,
@@ -421,6 +426,7 @@ function saveBooking_(payload) {
   bookingSheet.getRange(bookingRowNumber, 5).setNumberFormat("@");
   bookingSheet.getRange(bookingRowNumber, 7).setNumberFormat("@");
   bookingSheet.getRange(bookingRowNumber, 1, 1, bookingRow.length).setValues([bookingRow]);
+  bookingSheet.getRange(bookingRowNumber, OWNER_LINE_NAME_COLUMN).setValue(safeText_(ownerLineName));
   bookingSheet.getRange(bookingRowNumber, 2).setNumberFormat("yyyy/mm/dd hh:mm:ss");
   bookingSheet.getRange(bookingRowNumber, 10).setNumberFormat("yyyy/mm/dd");
   bookingSheet.getRange(bookingRowNumber, 12).setNumberFormat("yyyy/mm/dd");
@@ -660,6 +666,7 @@ function createCalendarEventDescription_(booking) {
     "",
     `飼主：${booking.owner.name}`,
     `聯絡電話：${booking.owner.phone}`,
+    `LINE 名稱：${booking.owner.lineName}`,
     `緊急聯絡人：${emergencyContact}`,
     `緊急聯絡電話：${booking.owner.emergencyPhone || "未填"}`,
     "",
@@ -776,6 +783,7 @@ function createDetailedEmailBody_(booking) {
     "【飼主與緊急聯絡】",
     `飼主姓名：${owner.name}`,
     `聯絡電話：${owner.phone}`,
+    `LINE 名稱：${owner.lineName}`,
     `緊急聯絡人：${owner.emergencyName || "未填"}`,
     `緊急聯絡電話：${owner.emergencyPhone || "未填"}`,
     `與飼主關係：${owner.emergencyRelation || "未填"}`,
