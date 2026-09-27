@@ -18,7 +18,7 @@
    - 執行身分：我
    - 誰可以存取：任何人
 8. 完成授權並部署。沿用原本以 `/exec` 結尾的網址即可。
-9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r8"`、`"pricingVersion":"cny-2027-v2"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若已啟用 Turnstile，另確認 `"botProtectionConfigured":true`；若指定次要日曆，再確認 `"calendarTarget":"configured"`。
+9. 以瀏覽器開啟 `/exec` 網址，確認回應包含 `"release":"cny-2027-production-r9"`、`"pricingVersion":"cny-2027-v2"`、`"emailNotificationConfigured":true` 與 `"paymentAccountConfigured":true`；若已啟用 Turnstile，另確認 `"botProtectionConfigured":true`；若指定次要日曆，再確認 `"calendarTarget":"configured"`。
 
 請勿把實際收件地址貼到 `config.js`、GitHub 或任何前端檔案。原本的 `LINE_CHANNEL_ACCESS_TOKEN` 與 `LINE_NOTIFICATION_TO` 已不再使用，可以從指令碼屬性刪除。
 
@@ -38,7 +38,7 @@
 
 信件內文包含完整預約明細：預約與入住時段、飼主與緊急聯絡資料、各房型與房間數量、伙食方案、費用拆分、每隻貓咪的飲食／健康／照護資料、其他補充及 Google Sheet 連結。系統不建立契約檔案或附件；契約由店家人工製作。只有 Email 本身寄送失敗時，第 25 欄才會記錄「寄送失敗」。
 
-新版後端首次收到預約時，會保留「住宿預約」工作表第 27–31 欄的舊版伙食欄位，以第 32–34 欄記錄「加購數量」、「伙食計價單位」與「單位價格」，第 35 欄記錄「房間數量」，第 36–37 欄記錄「Google Calendar 狀態」與「Google Calendar 行程 ID」，第 38–45 欄記錄計價版本、平日／春節晚數與小計、訂金金額。既有第 1–26 欄及 Email 狀態欄位置不變。
+新版後端首次收到預約時，會保留「住宿預約」工作表第 27–31 欄的舊版伙食欄位，以第 32–34 欄記錄「加購數量」、「伙食計價單位」與「單位價格」，第 35 欄記錄「房間數量」，第 36–37 欄記錄「Google Calendar 狀態」與「Google Calendar 行程 ID」，第 38–45 欄記錄計價版本、平日／春節晚數與小計、訂金金額，第 46 欄記錄飼主的「LINE 名稱」。既有第 1–26 欄及 Email 狀態欄位置不變。
 
 ## 三、設定 Google Calendar
 
