@@ -12,7 +12,7 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r9";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r10";/);
 assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
 assert.match(html, /name="bookingLitter"/);
@@ -285,6 +285,10 @@ assert.throws(
   /聯絡電話格式不正確/,
 );
 assert.equal(
+  vm.runInContext('requiredReservationId_("DWC-261020-0123456789ABCDEF")', context),
+  "DWC-261020-0123456789ABCDEF",
+);
+assert.equal(
   vm.runInContext(
     'requiredReservationId_("DWC-20260918-161809-0123456789ABCDEF0123456789ABCDEF")',
     context,
@@ -293,6 +297,10 @@ assert.equal(
 );
 assert.throws(
   () => vm.runInContext('requiredReservationId_("DWC-20260918-161809-AB12")', context),
+  /頁面版本已更新/,
+);
+assert.throws(
+  () => vm.runInContext('requiredReservationId_("DWC-261020-AB12")', context),
   /頁面版本已更新/,
 );
 assert.equal(vm.runInContext('safeText_(" =2+2")', context), "' =2+2");
@@ -505,8 +513,38 @@ assert.doesNotMatch(code, /DocumentApp|MimeType\.PDF|createContractPdf_/);
 assert.doesNotMatch(code, /function updateEmailStatus_|payload\.action === "updateEmailStatus"/);
 assert.doesNotMatch(html, /emailStatus:\s*"準備寄送"/);
 assert.match(html, /window\.crypto\.randomUUID/);
-assert.match(html, /new Uint8Array\(16\)/);
+assert.match(html, /new Uint8Array\(8\)/);
+assert.match(html, /parts\.year\.slice\(-2\)/);
 assert.doesNotMatch(html, /Math\.random/);
+const generatorSource = html.match(/function generateReservationId\(now = new Date\(\)\) \{[\s\S]*?\n        \}/)?.[0];
+assert.ok(generatorSource, "Expected reservation ID generator");
+const generatedId = vm.runInNewContext(
+  `${generatorSource}\ngenerateReservationId(new Date("2026-10-20T15:41:57Z"))`,
+  {
+    Date,
+    Intl,
+    Uint8Array,
+    window: {
+      crypto: {
+        getRandomValues(bytes) {
+          bytes.set([0, 1, 2, 3, 4, 5, 6, 7]);
+        },
+      },
+    },
+  },
+);
+assert.equal(generatedId, "DWC-261020-0001020304050607");
+assert.equal(generatedId.length, 27);
+const uuidFallbackId = vm.runInNewContext(
+  `${generatorSource}\ngenerateReservationId(new Date("2026-10-20T15:41:57Z"))`,
+  {
+    Date,
+    Intl,
+    Uint8Array,
+    window: { crypto: { randomUUID: () => "00112233-4455-4666-8777-8899aabbccdd" } },
+  },
+);
+assert.equal(uuidFallbackId, "DWC-261020-00112233AABBCCDD");
 assert.match(html, /正式契約由店家確認後另行製作/);
 assert.match(html, /2026 年 12 月 31 日（含）前/);
 assert.match(html, /2027 年 1 月 1 日至 1 月 23 日（含）/);
