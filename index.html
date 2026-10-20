@@ -2934,27 +2934,24 @@
             year: "numeric",
             month: "2-digit",
             day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hourCycle: "h23",
           })
             .formatToParts(now)
             .reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
           let suffix;
-          if (window.crypto?.randomUUID) {
-            suffix = window.crypto.randomUUID().replaceAll("-", "").toUpperCase();
-          } else if (window.crypto?.getRandomValues) {
-            const randomValues = new Uint8Array(16);
+          if (window.crypto?.getRandomValues) {
+            const randomValues = new Uint8Array(8);
             window.crypto.getRandomValues(randomValues);
             suffix = Array.from(
               randomValues,
               (value) => value.toString(16).padStart(2, "0"),
             ).join("").toUpperCase();
+          } else if (window.crypto?.randomUUID) {
+            const uuid = window.crypto.randomUUID().replaceAll("-", "");
+            suffix = `${uuid.slice(0, 8)}${uuid.slice(-8)}`.toUpperCase();
           } else {
             throw new Error("瀏覽器缺少安全功能，請更新瀏覽器後再送出預約。");
           }
-          return `DWC-${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}-${suffix}`;
+          return `DWC-${parts.year.slice(-2)}${parts.month}${parts.day}-${suffix}`;
         }
 
         function loadTurnstile() {
