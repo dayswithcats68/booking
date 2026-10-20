@@ -9,14 +9,14 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r9";
+const RELEASE_ID = "cny-2027-production-r10";
 const PRICING_VERSION = "cny-2027-v2";
 const REGULAR_DEPOSIT = 500;
 const CREATE_BOOKING_ACTION = "createBooking";
 const MAX_REQUEST_BYTES = 64 * 1024;
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const TURNSTILE_ACTION = "booking_submit";
-const RESERVATION_ID_PATTERN = /^DWC-\d{8}-\d{6}-[0-9A-F]{32}$/;
+const RESERVATION_ID_PATTERN = /^(?:DWC-\d{6}-[0-9A-F]{16}|DWC-\d{8}-\d{6}-[0-9A-F]{32})$/;
 const PHONE_PATTERN = /^(?=(?:\D*\d){8,15}\D*$)\+?[0-9() -]{8,20}$/;
 const CAT_SEX_OPTIONS = Object.freeze(["公", "母", "不確定"]);
 const CAT_NEUTERED_OPTIONS = Object.freeze(["已結紮", "未結紮"]);
