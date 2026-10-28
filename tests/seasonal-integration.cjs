@@ -17,6 +17,7 @@ const roomTypes = {
   family: { name: "探險家庭房", baseRate: 1300, maxCatsPerRoom: 6 },
 };
 const bookingOpenAt = Date.parse("2026-09-27T12:00:00+08:00");
+const secondWaveOpenAt = Date.parse("2026-10-31T12:00:00+08:00");
 
 function quote({
   roomKey = "small",
@@ -51,6 +52,10 @@ assert.equal(quote({ roomKey: "family", cats: 6 }).holidayNightlyRate, 3200);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-06" }).meetsMinimumStay, false);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-06" }).canSubmitSeasonal, false);
 assert.equal(quote({ checkIn: "2027-02-01", checkOut: "2027-02-08" }).meetsMinimumStay, true);
+assert.equal(quote({ checkIn: "2027-02-03", checkOut: "2027-02-07", now: secondWaveOpenAt - 1 }).canSubmitSeasonal, false);
+assert.equal(quote({ checkIn: "2027-02-03", checkOut: "2027-02-07", now: secondWaveOpenAt }).meetsMinimumStay, true);
+assert.equal(quote({ checkIn: "2027-02-03", checkOut: "2027-02-07", now: secondWaveOpenAt }).canSubmitSeasonal, true);
+assert.equal(quote({ checkIn: "2027-02-11", checkOut: "2027-02-12", now: secondWaveOpenAt }).canSubmitSeasonal, true);
 assert.equal(quote({ checkIn: "2027-02-11", checkOut: "2027-02-12" }).holidayNights, 1);
 assert.equal(quote({ checkIn: "2027-02-12", checkOut: "2027-02-13" }).holidayNights, 0);
 
@@ -120,9 +125,10 @@ assert.match(html, /2027年2月3日–2月11日/);
 assert.match(html, /2月11日為最後一個春節計價晚/);
 assert.match(html, /9月27日中午12:00起優先開放住宿5晚以上之預約/);
 assert.match(html, /2026年9月27日中午12:00起優先開放住宿5晚以上之預約/);
+assert.match(html, /2026年10月31日中午12:00起開放未滿5晚之預約/);
 assert.doesNotMatch(html, /每間基本價含 1 隻貓/);
 assert.doesNotMatch(html, /單間每晚，已含加貓費；— 表示超過容量/);
-assert.match(html, /未滿 5 個春節計價晚的預約尚未開放，開放時間另行公告/);
+assert.match(html, /未滿 5 個春節計價晚的預約將於 2026年10月31日中午12:00 開放/);
 assert.match(html, /scheduleSeasonalBookingOpen\(\)/);
 assert.match(html, /NT\$ 1,450/);
 assert.match(html, /NT\$ 1,800/);

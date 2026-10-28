@@ -13,6 +13,7 @@
     start: "2027-02-03",
     lastNight: "2027-02-11",
     bookingOpenAt: "2026-09-27T12:00:00+08:00",
+    secondWaveOpenAt: "2026-10-31T12:00:00+08:00",
     lateCheckoutStart: "2027-02-09",
     holidayBaseRates: Object.freeze({ small: 1450, jump: 1800, family: 2200 }),
     extraCatRate: 200,
@@ -56,6 +57,7 @@
     const holidaySubtotal = holidayNightlyRate * periods.holidayNights;
     const hasHoliday = periods.holidayNights > 0;
     const bookingOpen = Number(now) >= Date.parse(season.bookingOpenAt);
+    const secondWaveOpen = Number(now) >= Date.parse(season.secondWaveOpenAt);
     const checkoutDuringHoliday = quote.checkOut >= season.start && quote.checkOut <= season.lastNight;
     const lateCheckoutUnavailable = checkoutDuringHoliday
       && quote.checkOut < season.lateCheckoutStart;
@@ -93,9 +95,12 @@
       checkoutDuringHoliday,
       lateCheckoutUnavailable,
       bookingOpen,
-      meetsMinimumStay: !hasHoliday || periods.holidayNights >= season.minimumHolidayNights,
+      secondWaveOpen,
+      meetsMinimumStay: !hasHoliday || secondWaveOpen
+        || periods.holidayNights >= season.minimumHolidayNights,
       canSubmitSeasonal: !hasHoliday
-        || (bookingOpen && periods.holidayNights >= season.minimumHolidayNights),
+        || (bookingOpen && (secondWaveOpen
+          || periods.holidayNights >= season.minimumHolidayNights)),
       extraCatFeePerNight,
       regularNightlyRate,
       holidayNightlyRate,

@@ -1802,6 +1802,7 @@
         </p>
         <div class="spring-meta">
           <span>9月27日中午12:00起優先開放住宿5晚以上之預約</span>
+          <span>10月31日中午12:00起開放未滿5晚之預約</span>
         </div>
         <details class="spring-price-details" open>
           <summary>春節每晚價目</summary>
@@ -1822,7 +1823,7 @@
         <details class="spring-price-details">
           <summary>訂金、最低住宿與取消規則</summary>
           <div class="policy-copy">
-            <p><strong>預約條件</strong><br />2026年9月27日中午12:00起優先開放住宿5晚以上之預約。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。未滿 5 晚的開放時間另行公告。</p>
+            <p><strong>預約條件</strong><br />2026年9月27日中午12:00起優先開放住宿5晚以上之預約。2026年10月31日中午12:00起開放未滿5晚之預約。店家確認後 3 日內支付住宿費 50% 作為訂金；逾期不保留，尾款於入住日支付。</p>
             <p><strong>取消與退款</strong></p>
             <ul>
               <li>2026年12月31日（含）前取消：訂金全額退款。</li>
@@ -3377,7 +3378,7 @@
             : !quote.bookingOpen
               ? "春節住宿將於 2026年9月27日中午12:00 開放預約，目前可先試算費用。"
               : !quote.meetsMinimumStay
-                ? "未滿 5 個春節計價晚的預約尚未開放，開放時間另行公告。"
+                ? "未滿 5 個春節計價晚的預約將於 2026年10月31日中午12:00 開放，目前可先試算費用。"
                 : "";
           minimumStayError.classList.toggle("is-visible", seasonalBookingUnavailable);
           springDateStatus.hidden = !(quote.hasHoliday || quote.checkoutDuringHoliday);
@@ -3403,8 +3404,11 @@
         }
 
         function scheduleSeasonalBookingOpen() {
-          const delay = Date.parse(SEASON.bookingOpenAt) - Date.now();
-          if (delay <= 0) return;
+          const delay = [SEASON.bookingOpenAt, SEASON.secondWaveOpenAt]
+            .map((value) => Date.parse(value) - Date.now())
+            .filter((value) => value > 0)
+            .sort((a, b) => a - b)[0];
+          if (delay === undefined) return;
           window.setTimeout(() => {
             updateCalculator();
             scheduleSeasonalBookingOpen();
@@ -3649,7 +3653,7 @@
         }
 
         function showReservationStep() {
-          if (!currentQuote || !currentQuote.meetsMinimumStay) return;
+          if (!currentQuote || !currentQuote.canSubmitSeasonal) return;
           renderReservationSummary(currentQuote);
           renderCatForms(currentQuote.cats);
           estimateStep.hidden = true;
