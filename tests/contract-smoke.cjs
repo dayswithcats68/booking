@@ -12,7 +12,7 @@ const manifest = JSON.parse(
 
 assert.ok(!/spreadsheetId\s*:\s*["']/.test(code), "Spreadsheet ID must not be committed in backend code");
 assert.ok(!/\b\d{14}\b/.test(html), "Bank account number must not be committed in frontend code");
-assert.match(code, /const RELEASE_ID = "cny-2027-production-r10";/);
+assert.match(code, /const RELEASE_ID = "cny-2027-production-r11";/);
 assert.match(code, /const PRICING_VERSION = "cny-2027-v2";/);
 assert.doesNotMatch(code, /integration-preview/);
 assert.match(html, /name="bookingLitter"/);
@@ -148,6 +148,33 @@ const springSmall = vm.runInContext(`calculateQuote_({
   pricingVersion: PRICING_VERSION
 })`, context);
 assert.equal(springSmall.holidayNights, 5);
+vm.runInContext('Date.now = () => Date.parse("2026-10-31T03:59:59Z")', context);
+assert.throws(
+  () => vm.runInContext(`calculateQuote_({
+    rooms: [{ roomKey: "small", roomCount: 1 }],
+    roomCount: 1,
+    cats: 1,
+    checkIn: "2027-02-03",
+    checkOut: "2027-02-07",
+    isLate: false,
+    mealPlanKey: "none",
+    pricingVersion: PRICING_VERSION
+  })`, context),
+  /未滿 5 個春節計價晚的預約，將於 2026年10月31日中午12:00 開放/,
+);
+vm.runInContext('Date.now = () => Date.parse("2026-10-31T04:00:00Z")', context);
+const secondWaveQuote = vm.runInContext(`calculateQuote_({
+  rooms: [{ roomKey: "small", roomCount: 1 }],
+  roomCount: 1,
+  cats: 1,
+  checkIn: "2027-02-03",
+  checkOut: "2027-02-07",
+  isLate: false,
+  mealPlanKey: "none",
+  pricingVersion: PRICING_VERSION
+})`, context);
+assert.equal(secondWaveQuote.holidayNights, 4);
+assert.equal(secondWaveQuote.discountedStaySubtotal, 5800);
 assert.equal(springSmall.bookingOpen, true);
 assert.equal(springSmall.regularNights, 0);
 assert.equal(springSmall.holidayNightlyRate, 1450);
@@ -261,7 +288,6 @@ assert.throws(
 );
 
 for (const source of [
-  `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-01", checkOut: "2027-02-06", isLate: false, mealPlanKey: "none", pricingVersion: PRICING_VERSION })`,
   `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-03", checkOut: "2027-02-08", isLate: false, mealPlanKey: "none" })`,
   `calculateQuote_({ rooms: [{ roomKey: "small", roomCount: 1 }], roomCount: 1, cats: 1, checkIn: "2027-02-03", checkOut: "2027-02-08", isLate: true, mealPlanKey: "none", pricingVersion: PRICING_VERSION })`,
 ]) {

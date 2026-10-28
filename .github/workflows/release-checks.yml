@@ -50,6 +50,7 @@ jobs:
           const compatibleReleases = new Set([
             'cny-2027-production-r9',
             'cny-2027-production-r10',
+            'cny-2027-production-r11',
           ]);
           if (!compatibleReleases.has(health.release)) {
             throw new Error(`Unexpected backend release: ${health.release || 'missing'}`);
