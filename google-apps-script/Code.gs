@@ -9,7 +9,7 @@ const CONFIG = Object.freeze({
   source: "網站預約表單",
 });
 
-const RELEASE_ID = "cny-2027-production-r11";
+const RELEASE_ID = "cny-2027-production-r12";
 const PRICING_VERSION = "cny-2027-v2";
 const REGULAR_DEPOSIT = 500;
 const CREATE_BOOKING_ACTION = "createBooking";
@@ -35,7 +35,7 @@ const SEASONAL_CONFIG = Object.freeze({
   lastNight: "2027-02-11",
   bookingOpenAt: "2026-09-27T12:00:00+08:00",
   secondWaveOpenAt: "2026-10-31T12:00:00+08:00",
-  lateCheckoutStart: "2027-02-09",
+  lateCheckoutStart: "2027-02-07",
   holidayBaseRates: Object.freeze({
     small: 1450,
     jump: 1800,
@@ -1070,7 +1070,7 @@ function calculateQuote_(booking) {
     throw new Error("未滿 5 個春節計價晚的預約，將於 2026年10月31日中午12:00 開放");
   }
   if (isLate && lateCheckoutUnavailable) {
-    throw new Error("2027/2/9 起才提供 15:00 後退宿");
+    throw new Error("2027/2/7 起才提供 15:00 後退宿");
   }
 
   const regularNightlyRate = roomSelection.baseRoomFeePerNight + extraCatFeePerNight;
